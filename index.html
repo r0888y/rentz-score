@@ -374,7 +374,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
     const splash = document.getElementById('splashScreen');
 
-    const texts = ["J♠","Q","K♥","♦","∞","RENTZ","J♠","Q","K♥","♦","∞"];
+    const texts = ["J♠","Q","K♥","♦","∞","Rentz"];
 
     function rand(min,max){
         return Math.random()*(max-min)+min;
@@ -420,7 +420,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     const setIndex = Math.floor(Math.random() * colorSets.length);
     const getColor = colorSets[setIndex];
 
-    const COUNT = 60;
+    const COUNT = 90;
 
     const placed = [];
     const minDist = 7;
@@ -466,7 +466,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         d.style.color = getColor(t);
         d.style.color = getColor(t);
 
-        const size = rand(5, 24);
+        const size = rand(4.5, 15);
         d.style.fontSize = size + "vw";
 
         d.style.left = x + "%";
