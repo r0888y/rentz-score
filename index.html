@@ -1139,15 +1139,15 @@ function saveSetariPct(){
     if(vals4.some(v=>isNaN(v)||v<0)){
         err4.textContent = "Joc 4: toate valorile trebuie să fie numere întregi pozitive sau 0!";
         err4.style.display = "block"; ok = false;
-    } else if(!(vals4[0]>vals4[1] && vals4[1]>vals4[2] && vals4[2]>vals4[3])){
-        err4.textContent = "Joc 4: trebuie Loc 1 > Loc 2 > Loc 3 > Loc 4!";
+    } else if(!(vals4[0]>vals4[1] && vals4[1]>=vals4[2] && vals4[2]>=vals4[3])){
+        err4.textContent = "Joc 4: trebuie Loc 1 > Loc 2 ≥ Loc 3 ≥ Loc 4!";
         err4.style.display = "block"; ok = false;
     }
     if(vals3.some(v=>isNaN(v)||v<0)){
         err3.textContent = "Joc 3: toate valorile trebuie să fie numere întregi pozitive sau 0!";
         err3.style.display = "block"; ok = false;
-    } else if(!(vals3[0]>vals3[1] && vals3[1]>vals3[2])){
-        err3.textContent = "Joc 3: trebuie Loc 1 > Loc 2 > Loc 3!";
+    } else if(!(vals3[0]>vals3[1] && vals3[1]>=vals3[2])){
+        err3.textContent = "Joc 3: trebuie Loc 1 > Loc 2 ≥ Loc 3!";
         err3.style.display = "block"; ok = false;
     }
     if(!ok) return;
@@ -1164,8 +1164,8 @@ function saveSetariPct4(){
         errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
         errEl.style.display = "block"; return;
     }
-    if(!(vals[0]>vals[1] && vals[1]>vals[2] && vals[2]>vals[3])){
-        errEl.textContent = "Trebuie: Loc 1 > Loc 2 > Loc 3 > Loc 4!";
+    if(!(vals[0]>vals[1] && vals[1]>=vals[2] && vals[2]>=vals[3])){
+        errEl.textContent = "Trebuie: Loc 1 > Loc 2 ≥ Loc 3 ≥ Loc 4!";
         errEl.style.display = "block"; return;
     }
     setPct4(vals);
@@ -1181,8 +1181,8 @@ function saveSetariPct3(){
         errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
         errEl.style.display = "block"; return;
     }
-    if(!(vals[0]>vals[1] && vals[1]>vals[2])){
-        errEl.textContent = "Trebuie: Loc 1 > Loc 2 > Loc 3!";
+    if(!(vals[0]>vals[1] && vals[1]>=vals[2])){
+        errEl.textContent = "Trebuie: Loc 1 > Loc 2 ≥ Loc 3!";
         errEl.style.display = "block"; return;
     }
     setPct3(vals);
