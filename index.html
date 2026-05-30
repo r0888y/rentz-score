@@ -213,6 +213,18 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     display:flex;align-items:center;justify-content:center;
 }
 #confirmModal.hidden{display:none!important;}
+#jocCompletAlertModal{
+    position:fixed;inset:0;z-index:30000;
+    background:rgba(0,0,0,0.88);
+    display:flex;align-items:center;justify-content:center;
+}
+#jocCompletAlertModal.hidden{display:none!important;}
+#prelungireCompletaAlertModal{
+    position:fixed;inset:0;z-index:30000;
+    background:rgba(0,0,0,0.88);
+    display:flex;align-items:center;justify-content:center;
+}
+#prelungireCompletaAlertModal.hidden{display:none!important;}
 .confirm-box{
     background:#1a1a1a;
     border:2px solid #ff4040;
@@ -376,6 +388,28 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         <div class="confirm-btns">
             <button class="btn-cancel" onclick="document.getElementById('confirmModal').classList.add('hidden')">Anulează</button>
             <button onclick="document.getElementById('confirmModal').classList.add('hidden');resetGame()">Da, șterge</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALERTA JOC COMPLET -->
+<div id="jocCompletAlertModal" class="hidden">
+    <div class="confirm-box">
+        <h2>🏁 Joc complet!</h2>
+        <p>Pentru a înregistra jocul, apasă butonul <strong>Finalizează joc</strong>, din bara de sus.</p>
+        <div class="confirm-btns">
+            <button onclick="document.getElementById('jocCompletAlertModal').classList.add('hidden')">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALERTA PRELUNGIRE COMPLETA -->
+<div id="prelungireCompletaAlertModal" class="hidden">
+    <div class="confirm-box">
+        <h2>🏁 Prelungire completă!</h2>
+        <p>Pentru a înregistra jocul, apasă butonul <strong>Finalizează joc</strong>, din bara de sus.</p>
+        <div class="confirm-btns">
+            <button onclick="document.getElementById('prelungireCompletaAlertModal').classList.add('hidden')">OK</button>
         </div>
     </div>
 </div>
@@ -943,6 +977,9 @@ function checkGameEnd(cols,grand){
             }
             if(!hasCheck){ window._gameComplete=false; return; }
         }
+    }
+    if(!window._gameComplete){
+        document.getElementById("jocCompletAlertModal").classList.remove("hidden");
     }
     window._gameComplete=true;
 }
@@ -1876,6 +1913,9 @@ function checkTbEnd(tbCols,grand,numPlayers){
             if(cb&&cb.checked)hasCheck=true;
         });
         if(!hasCheck)return;
+    }
+    if(!window._tbComplete){
+        document.getElementById("prelungireCompletaAlertModal").classList.remove("hidden");
     }
     window._tbComplete = true;
 }
