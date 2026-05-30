@@ -374,11 +374,51 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
     const splash = document.getElementById('splashScreen');
 
-    const texts = ["J♠","Q","K♥","♦","Totale","Rentz"];
+    const texts = ["J♠","Q","K♥","♦","∞","Rentz"];
 
     function rand(min,max){
         return Math.random()*(max-min)+min;
     }
+
+    // Seturi de degradeuri - se schimba la fiecare refresh
+    const colorSets = [
+        // rosu → portocaliu → galben (original)
+        function(t){
+            let r=255, g=0, b=0;
+            if(t<0.5){ g=Math.floor(t/0.5*120); }
+            else { g=Math.floor(120+(t-0.5)/0.5*135); }
+            return `rgb(${r},${g},${b})`;
+        },
+        // rosu → mov → albastru
+        function(t){
+            let r=Math.floor(255*(1-t)), g=0, b=Math.floor(255*t);
+            let extra=Math.floor(Math.sin(t*Math.PI)*80);
+            return `rgb(${r+extra},${extra/2},${b})`;
+        },
+        // rosu → roz → alb
+        function(t){
+            let base=Math.floor(t*200);
+            return `rgb(255,${base},${base})`;
+        },
+        // verde inchis → galben → portocaliu
+        function(t){
+            let r=Math.floor(t*255), g=Math.floor(150+t*105), b=0;
+            return `rgb(${r},${g},${b})`;
+        },
+        // albastru inchis → cyan → alb
+        function(t){
+            let base=Math.floor(t*255);
+            return `rgb(${base},${base},255)`;
+        },
+        // auriu → aramiu → rosu inchis
+        function(t){
+            let r=255, g=Math.floor(215*(1-t)), b=0;
+            return `rgb(${r},${g},${b})`;
+        }
+    ];
+
+    const setIndex = Math.floor(Math.random() * colorSets.length);
+    const getColor = colorSets[setIndex];
 
     const COUNT = 90;
 
@@ -423,22 +463,8 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
         const t = y / 100;
 
-        // 🔥 GRADIENT REAL: roșu → portocaliu → galben
-        let r, g, b = 0;
-
-        if(t < 0.5){
-            // roșu → portocaliu
-            const k = t / 0.5;
-            r = 255;
-            g = Math.floor(0 + k * 120);
-        } else {
-            // portocaliu → galben
-            const k = (t - 0.5) / 0.5;
-            r = 255;
-            g = Math.floor(120 + k * 135);
-        }
-
-        d.style.color = `rgb(${r},${g},${b})`;
+        d.style.color = getColor(t);
+        d.style.color = getColor(t);
 
         const size = rand(4.5, 15);
         d.style.fontSize = size + "vw";
