@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rentz Score</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rentz Score">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="manifest" id="pwaManifest">
+<link rel="apple-touch-icon" id="pwaIcon">
+<script>
+// Genereaza iconita K rosu ca SVG
+(function(){
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+        <rect width="192" height="192" rx="32" fill="#0b0b0b"/>
+        <text x="96" y="148" font-family="Arial Black,Arial" font-weight="900" font-size="140" fill="#cc0000" text-anchor="middle">K</text>
+    </svg>`;
+    const svgBlob = new Blob([svg], {type:"image/svg+xml"});
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    // Manifest
+    const manifest = {
+        name: "Rentz Score",
+        short_name: "Rentz",
+        description: "Aplicație de scor pentru Rentz",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#0b0b0b",
+        theme_color: "#0b0b0b",
+        orientation: "portrait",
+        icons: [
+            { src: svgUrl, sizes: "192x192", type: "image/svg+xml" },
+            { src: svgUrl, sizes: "512x512", type: "image/svg+xml" }
+        ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    document.getElementById("pwaManifest").href = manifestUrl;
+    document.getElementById("pwaIcon").href = svgUrl;
+
+    // Service worker inline
+    if("serviceWorker" in navigator){
+        const swCode = `
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => clients.claim());
+self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(()=>new Response(''))));
+        `;
+        const swBlob = new Blob([swCode], {type:"application/javascript"});
+        const swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl).catch(()=>{});
+    }
+})();
+</script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b0b;color:#fff;font-family:Arial;font-size:16px;}
+html{height:100dvh;width:100%;}
+
+.header{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:6px;background:#0b0b0b;}
+h2{margin:0;font-size:18px}
+button{background:#00ff95;border:0;padding:5px 8px;font-size:14px;border-radius:6px;font-weight:bold;cursor:pointer;}
+
+.top-total{position:sticky;top:42px;z-index:90;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:#0b0b0b;}
+.player-box {
+  background: radial-gradient(circle at center, #020617 0%, #00416A 66%, #00D2FF 100%);
+  padding: 0px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 3px rgba(0,0,0,0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+.ist-topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.player-box.p4-empty{opacity:0.5;}
+.player-games{margin-top:0;padding:2px 2px 3px;font-size:13px;font-weight:bold;color:#00ff95;letter-spacing:0;text-align:center;line-height:1;}
+.player-games span{margin:0;font-size:21px;}
+.player-games span::after{content:"·";}
+.player-games span:last-child::after{content:"";}
+.player-name{width:100%;height:32px;font-size:18px;font-family:Georgia,serif;font-weight:700;padding:0;line-height:32px;text-align:center;text-shadow:0 0 0.5px #000,0 0 0.5px #000;background:#f5f5f5;color:#000;border-radius:6px 6px 0 0;border-top:2px solid #ffffff;border-left:2px solid #ffffff;border-right:2px solid #888;border-bottom:2px solid #888;box-shadow:0 3px 6px rgba(0,0,0,0.4);outline:none;-webkit-appearance:none;appearance:none;}
+.player-name::placeholder{font-family:Georgia,serif;font-size:16px;color:#777;}
+.player-score{margin-top:1px;font-size:42px;color:#ffffff;font-weight:bold;line-height:1.1;}
+
+#stickyPlayers tr td{position:sticky;top:0;z-index:10;padding:4px 2px;font-size:14px;font-family:Georgia,serif;font-weight:700;color:#00FFFF;text-align:left;border:none;border-bottom:2px solid #00FFFF;background:#0b0b0b;white-space:nowrap;overflow:visible;text-overflow:clip;}
+#stickyPlayers tr td:first-child{font-size:0;color:transparent;}
+
+.wrapper{height:calc(100vh - 140px);overflow:auto;position:relative;}
+table{border-collapse:collapse;width:100%;background:#111;table-layout:fixed;}
+th,td{border:1px solid #1f1f1f;text-align:center;padding:2px;font-size:15px;}
+td:has(input[type="checkbox"]){padding-right:0;padding-left:20px;}
+td:has(input[type="number"]){padding-left:0;padding-right:10px;}
+/* section rows = thin colored separator strip */
+.section td{height:2px;padding:0;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);font-size:0;color:transparent;}
+.section td.mini-head{font-size:0;color:transparent;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);}
+.mini-head{font-size:0;color:transparent;}
+input[type="number"]{width:5.3ch;min-width:1px;font-size:18px;background:#000;color:#000;text-align:center;border:2px solid #bbb;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);outline:none;-webkit-appearance:none;appearance:none;font-weight:bold;}
+input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
+input[type="checkbox"]{width:16px;height:16px;margin:0;}
+.total{background:#1b1b1b;color:#00ff95;font-weight:bold;}
+.row-total{text-align:right;padding-right:4px;width:40px;font-size:18px;font-weight:bold;}
+#col0,#col1,#col2,#col3,#grandTotal{font-size:18px;font-weight:bold;}
+.player-games span{color:#00FF00;margin:0;cursor:default;text-shadow: 0 0 3px #00FF00, 0 0 1px #00FF00;}
+.player-games span.active{color:#2B2B2B !important;}
+
+.numpad{position:fixed;bottom:10px;left:10px;right:10px;background:rgba(17,17,17,0.85);border:1px solid rgba(51,51,51,0.5);border-radius:12px;z-index:9999;padding:8px;max-width:280px;min-width:280px;margin:auto;backdrop-filter:blur(6px);}
+.numpad-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px;}
+.pad-x{background:#ff4040;border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;}
+.numpad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.numpad-grid button{padding:0px;font-size:28px;border-radius:8px;background:#222;color:#fff;border:none;opacity:1;cursor:pointer;}
+.numpad-grid button:active{background:#00ff95;color:#000;}
+.hidden{display:none !important;}
+.active-input{outline:3px solid #00ff95 !important;box-shadow:0 0 0 3px rgba(0,255,149,0.25),0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);}
+
+tbody tr:nth-child(5n+2) td:first-child{position:relative;}
+tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:absolute;left:10px;top:50%;transform:translateY(-25%);font-size:var(--wm-size,120px);font-weight:900;opacity:0.35;pointer-events:none;color:#ffffff;z-index:1;}
+
+/* ===== TIEBREAKER OVERLAY ===== */
+#tiebreakerOverlay{
+    position:fixed;inset:0;z-index:10000;
+    background:#0b0b0b;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+}
+#tiebreakerOverlay.hidden{display:none!important;}
+
+.tb-header{
+    background:#0b0b0b;
+    padding:8px 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:2px solid #00ff95;
+    flex-shrink:0;
+}
+.tb-header h2{margin:0;font-size:17px;color:#00ff95;}
+.tb-round-badge{background:#800081;color:#fff;font-size:12px;padding:3px 8px;border-radius:20px;font-weight:bold;}
+
+.tb-scores{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:4px;
+    padding:6px;
+    background:#0b0b0b;
+    flex-shrink:0;
+}
+.tb-score-box{
+    background:#800081;
+    border-radius:12px;
+    text-align:center;
+    padding:4px;
+    min-height:70px;
+    display:flex;flex-direction:column;justify-content:center;
+}
+.tb-score-box.hidden{display:none!important;}
+.tb-name{font-family:Georgia,serif;font-weight:700;font-size:16px;background:#f5f5f5;color:#000;border-radius:5px;line-height:28px;height:28px;}
+.tb-val{font-size:24px;font-weight:bold;color:#fff;margin-top:2px;}
+.tb-val.tied{color:#FFC107;}
+
+.tb-wrapper{flex:1;overflow:auto;position:relative;}
+.tb-wrapper table{border-collapse:collapse;width:100%;background:#111;table-layout:fixed;}
+.tb-wrapper .section td{height:auto;padding:2px;background:#1f1f1f;font-size:20px;color:#FFC107;font-weight:bold;border:1px solid #1f1f1f;}
+.tb-wrapper .mini-head{color:#00FFFF;font-size:17px;font-weight:bold;}
+.tb-wrapper input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
+
+#winnerModal{
+    position:fixed;inset:0;z-index:20000;
+    background:rgba(0,0,0,0.92);
+    display:flex;align-items:center;justify-content:center;
+}
+#winnerModal.hidden{display:none!important;}
+.winner-box{
+    background:#111;
+    border:2px solid #00ff95;
+    border-radius:20px;
+    padding:30px 24px;
+    text-align:center;
+    max-width:320px;
+    width:90%;
+}
+.winner-box h1{margin:0 0 10px;font-size:28px;color:#00ff95;}
+.winner-box p{font-size:17px;color:#fff;margin:0 0 20px;line-height:1.8;}
+.winner-box button{font-size:16px;padding:10px 24px;}
+
+#tieModal{
+    position:fixed;inset:0;z-index:20000;
+    background:rgba(0,0,0,0.88);
+    display:flex;align-items:center;justify-content:center;
+}
+#tieModal.hidden{display:none!important;}
+.tie-box{
+    background:#1a1a1a;
+    border:2px solid #FFC107;
+    border-radius:16px;
+    padding:24px 20px;
+    text-align:center;
+    max-width:320px;
+    width:90%;
+}
+.tie-box h2{margin:0 0 10px;color:#FFC107;font-size:20px;}
+.tie-box p{color:#fff;margin:0 0 20px;font-size:15px;line-height:1.5;}
+.tie-box button{font-size:15px;padding:8px 22px;}
+
+#confirmModal{
+    position:fixed;inset:0;z-index:30000;
+    background:rgba(0,0,0,0.88);
+    display:flex;align-items:center;justify-content:center;
+}
+#confirmModal.hidden{display:none!important;}
+.confirm-box{
+    background:#1a1a1a;
+    border:2px solid #ff4040;
+    border-radius:16px;
+    padding:24px 20px;
+    text-align:center;
+    max-width:300px;
+    width:88%;
+}
+.confirm-box h2{margin:0 0 12px;color:#ff4040;font-size:18px;}
+.confirm-box p{color:#fff;margin:0 0 20px;font-size:14px;}
+.confirm-btns{display:flex;gap:10px;justify-content:center;}
+.confirm-btns button{font-size:14px;padding:8px 20px;}
+.btn-cancel{background:#444;color:#fff;}
+
+/* ===== ISTORIC OVERLAY ===== */
+#istoricOverlay{
+    position:fixed;inset:0;z-index:25000;
+    background:#0b0b0b;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+}
+#istoricOverlay.hidden{display:none!important;}
+.ist-header{
+    background:#0b0b0b;
+    padding:8px 10px;
+    display:flex;justify-content:space-between;align-items:center;
+    border-bottom:2px solid #FFD700;
+    flex-shrink:0;
+}
+.ist-header h2{margin:0;font-size:17px;color:#FFD700;}
+.ist-close{background:#444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:14px;cursor:pointer;}
+.ist-body{flex:1;overflow:auto;padding:10px;}
+.ist-section-title{color:#00ff95;font-size:13px;font-weight:bold;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;}
+.ist-victorii-table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+.ist-victorii-table th{background:#1a1a1a;color:#FFD700;font-size:13px;padding:6px 8px;border:1px solid #333;text-align:center;}
+.ist-victorii-table td{padding:6px 8px;border:1px solid #222;font-size:14px;text-align:center;color:#fff;}
+.ist-victorii-table tr:nth-child(even) td{background:#111;}
+.ist-victorii-table td:first-child{text-align:left;font-family:Georgia,serif;font-weight:bold;}
+.ist-joc{background:#111;border:1px solid #222;border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+.ist-joc-date{font-size:11px;color:#888;margin-bottom:4px;}
+.ist-joc-row{font-size:14px;padding:2px 0;display:flex;gap:8px;}
+.ist-joc-row .ist-loc{min-width:28px;}
+.ist-joc-row .ist-name{flex:1;font-family:Georgia,serif;}
+.ist-joc-row .ist-pct{color:#aaa;font-size:12px;}
+.ist-import-btn{background:#333;color:#fff;border:1px solid #555;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;}
+.ist-export-btn{background:#00ff95;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:bold;cursor:pointer;}
+.ist-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+
+/* ===== ALERT MODAL GENERIC ===== */
+#alertModal{
+    position:fixed;inset:0;z-index:40000;
+    background:rgba(0,0,0,0.88);
+    display:flex;align-items:center;justify-content:center;
+}
+#alertModal.hidden{display:none!important;}
+.alert-box{
+    background:#111;
+    border:2px solid #444;
+    border-radius:16px;
+    padding:24px 22px;
+    text-align:center;
+    max-width:300px;
+    width:90%;
+    box-shadow:0 0 30px rgba(0,0,0,0.8);
+}
+.alert-box button{
+    background:#333;color:#fff;border:1px solid #555;
+    border-radius:8px;cursor:pointer;font-size:15px;padding:8px 28px;
+}
+.alert-box button:active{background:#555;}
+#campionatModal{
+    position:fixed;inset:0;z-index:35000;
+    background:rgba(0,0,0,0.95);
+    display:flex;align-items:center;justify-content:center;
+}
+#campionatModal.hidden{display:none!important;}
+.campionat-box{
+    background:#111;
+    border:2px solid #FFD700;
+    border-radius:20px;
+    padding:28px 22px;
+    text-align:center;
+    max-width:320px;
+    width:90%;
+}
+.campionat-box h1{margin:0 0 8px;font-size:32px;}
+.campionat-box p{font-size:16px;color:#fff;margin:0 0 18px;line-height:1.7;}
+.campionat-box .must-save{font-size:13px;color:#ff4040;margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmModal" class="hidden">
+    <div class="confirm-box">
+        <h2>Joc nou</h2>
+        <p>Ștergi jocul curent?</p>
+        <div class="confirm-btns">
+            <button class="btn-cancel" onclick="document.getElementById('confirmModal').classList.add('hidden')">Anulează</button>
+            <button onclick="document.getElementById('confirmModal').classList.add('hidden');resetGame()">Da, șterge</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL RESET ISTORIC -->
+<div id="confirmResetModal" class="hidden" style="position:fixed;inset:0;z-index:36000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;">
+    <div class="confirm-box">
+        <h2>⚠️ Șterge tot istoricul</h2>
+        <p style="font-size:13px;">Această acțiune este <strong style="color:#ff4040;">IREVERSIBILĂ!</strong><br><br>Totuși fac o salvare...<br>Am salvat: <strong id="resetFileName" style="color:#00ff95;word-break:break-all;"></strong><br>în folderul download.</p>
+        <div class="confirm-btns">
+            <button class="btn-cancel" onclick="document.getElementById('confirmResetModal').classList.add('hidden')">Anulează</button>
+            <button style="background:#ff4040;" onclick="document.getElementById('confirmResetModal').classList.add('hidden');executeResetIstoric()">Da, șterge tot</button>
+        </div>
+    </div>
+</div>
+
+<!-- SETARI MODAL -->
+<div id="setariModal" class="hidden" style="position:fixed;inset:0;z-index:36000;background:rgba(0,0,0,0.92);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;">
+    <div style="background:#111;border:2px solid #444;border-radius:16px;padding:20px 18px;max-width:320px;width:94%;margin:20px auto;">
+        <h2 style="color:#FFD700;text-align:center;margin:0 0 16px;">⚙️ Configurare</h2>
+
+        <!-- PRAG CAMPIONAT -->
+        <div style="background:#1a1a1a;border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div style="color:#00ff95;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:10px;">PRAG CAMPIONAT</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:13px;color:#aaa;">Campionat la</span>
+                <input id="setariPragInput" type="number" min="1" style="width:65px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                <span style="font-size:13px;color:#aaa;">puncte</span>
+            </div>
+            <div id="setariPragEroare" style="color:#ff4040;font-size:12px;margin-top:6px;display:none;"></div>
+            <button onclick="saveSetariPrag()" style="font-size:12px;padding:4px 12px;border-radius:6px;width:100%;margin-top:8px;">💾 Save</button>
+        </div>
+
+        <!-- PUNCTAJE JOC 4 -->
+        <div style="background:#1a1a1a;border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div style="color:#00ff95;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:10px;">PUNCTAJE JOC DE 4 JUCĂTORI</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🏆 Loc 1</span>
+                    <input id="pct4_1" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🥈 Loc 2</span>
+                    <input id="pct4_2" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🥉 Loc 3</span>
+                    <input id="pct4_3" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🦴 Loc 4</span>
+                    <input id="pct4_4" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+            </div>
+            <div style="color:#00ff95;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:10px;margin-top:4px;">PUNCTAJE JOC DE 3 JUCĂTORI</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🏆 Loc 1</span>
+                    <input id="pct3_1" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🥈 Loc 2</span>
+                    <input id="pct3_2" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:13px;white-space:nowrap;">🥉 Loc 3</span>
+                    <input id="pct3_3" type="number" min="0" style="width:50px;font-size:14px;padding:4px 6px;border-radius:6px;border:1px solid #555;background:#222;color:#fff;">
+                    <span style="font-size:12px;color:#aaa;">pct</span>
+                </div>
+            </div>
+            <div id="setariPct4Eroare" style="color:#ff4040;font-size:12px;margin-bottom:4px;display:none;"></div>
+            <div id="setariPct3Eroare" style="color:#ff4040;font-size:12px;margin-bottom:6px;display:none;"></div>
+            <button id="savePctBtn" onclick="saveSetariPct()" style="font-size:12px;padding:4px 12px;border-radius:6px;width:100%;">💾 Save</button>
+        </div>
+
+        <!-- INCHIDE -->
+        <button onclick="closeSetari()" style="width:100%;font-size:14px;padding:8px;background:#333;border-radius:8px;border:1px solid #555;color:#fff;">✕ Închide</button>
+    </div>
+</div>
+
+<!-- MAIN GAME -->
+<div class="header">
+    <div style="display:flex;align-items:center;gap:6px;">
+        <button onclick="openIstoric()" style="background:#FFD700;color:#000;">🏆</button>
+        <h2 style="margin:0;">Rentz Score</h2>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
+        <button onclick="finalizeazaJoc()" style="background:#00aa55;color:#fff;">Finalizează joc</button>
+        <span id="jocIncompletMsg" style="color:#ff4040;font-size:11px;display:none;white-space:nowrap;">Joc incomplet!</span>
+        <button onclick="newGame()">Joc nou</button>
+    </div>
+</div>
+
+<!-- ISTORIC OVERLAY -->
+<div id="istoricOverlay" class="hidden">
+
+<div class="ist-header" style="display:flex;justify-content:space-between;align-items:center;">
+
+    <!-- stânga -->
+    <div class="left" style="display:flex;align-items:center;gap:1px;">
+        <h2>🏆 Istoric & Clasamente</h2>
+
+        <button class="ist-import-btn"
+                style="background:#000;border-color:#000;"
+                onclick="resetIstoric()">
+            🗑
+        </button>
+        <button class="ist-import-btn"
+                style="background:#000;border-color:#000;"
+                onclick="openSetari()">
+            ⚙️
+        </button>
+    </div>
+
+    <!-- dreapta -->
+    <div class="right">
+        <button class="ist-close"
+                style="background:#ff4040;border-color:#ff4040;"
+                onclick="closeIstoric()">
+            Închide aici✕
+        </button>
+    </div>
+
+</div>     
+
+    <div class="ist-body">
+        <div class="ist-actions">
+            <button class="ist-export-btn" onclick="exportIstoric()">⬇ Exportă .txt</button>
+            <label class="ist-import-btn">⬆ Importă .txt<input type="file" accept=".txt" style="display:none" onchange="importIstoric(event)"></label>
+        </div>
+        <div id="setariRezumatIstoric" style="font-size:12px;color:#aaa;padding:6px 4px 10px;line-height:1.8;"></div>
+        <div class="ist-section-title">Clasament general</div>
+        <table class="ist-victorii-table" id="victoriiTable">
+            <thead><tr><th>Jucător</th><th>🏆 Loc 1</th><th>🥈 Loc 2</th><th>🥉 Loc 3</th><th>🦴 Loc 4</th><th>⭐ Punctaj</th></tr></thead>
+            <tbody id="victoriiBody"></tbody>
+        </table>
+        <div class="ist-section-title">🥇 Campionate câștigate</div>
+        <table class="ist-victorii-table" id="campionateTable">
+            <thead><tr><th style="text-align:left">Jucător</th><th>🥇 Campionate</th></tr></thead>
+            <tbody id="campionateBody"></tbody>
+        </table>
+        <div class="ist-section-title">Jocuri jucate</div>
+        <div id="joculiList"></div>
+    </div>
+</div>
+
+<!-- CAMPIONAT MODAL -->
+<div id="campionatModal" class="hidden">
+    <div class="campionat-box">
+        <h1 id="campionatIcon">🥇</h1>
+        <p id="campionatMsg"></p>
+        <div class="must-save" id="campionatMustSave">⚠️ Trebuie să salvezi înainte de a continua!</div>
+        <button id="campionatBtnSalveaza" onclick="exportCampionatSiReseteaza()" style="font-size:15px;padding:10px 22px;">💾 Salvează &amp; Resetează</button>
+        <button id="campionatBtnContinua" onclick="closePrelungireModal()" style="font-size:15px;padding:10px 22px;display:none;">⚡ OK, continuăm!</button>
+    </div>
+</div>
+
+<!-- ALERT MODAL GENERIC -->
+<div id="alertModal" class="hidden">
+    <div class="alert-box">
+        <div id="alertIcon" style="font-size:32px;margin-bottom:8px;">ℹ️</div>
+        <p id="alertMsg" style="margin:0 0 18px;line-height:1.5;font-size:14px;color:#fff;white-space:pre-line;"></p>
+        <button onclick="closeAlert()" style="font-size:15px;padding:8px 28px;">OK</button>
+    </div>
+</div>
+
+<div class="top-total">
+    <div class="player-box">
+        <input class="player-name" id="name0" value="P1">
+        <div class="player-score" id="top0">0</div>
+        <div class="player-games" id="games0">
+            <span data-game="J">J♠</span><span data-game="Q">Q</span><span data-game="K">K♥</span><br><span data-game="D">♦</span><span data-game="T">T</span><span data-game="R">R</span>
+        </div>
+    </div>
+    <div class="player-box">
+        <input class="player-name" id="name1" value="P2">
+        <div class="player-score" id="top1">0</div>
+        <div class="player-games" id="games1">
+            <span data-game="J">J♠</span><span data-game="Q">Q</span><span data-game="K">K♥</span><br><span data-game="D">♦</span><span data-game="T">T</span><span data-game="R">R</span>
+        </div>
+    </div>
+    <div class="player-box">
+        <input class="player-name" id="name2" value="P3">
+        <div class="player-score" id="top2">0</div>
+        <div class="player-games" id="games2">
+            <span data-game="J">J♠</span><span data-game="Q">Q</span><span data-game="K">K♥</span><br><span data-game="D">♦</span><span data-game="T">T</span><span data-game="R">R</span>
+        </div>
+    </div>
+    <div class="player-box">
+        <input class="player-name" id="name3" value="" placeholder="New player">
+        <div class="player-score" id="top3">0</div>
+        <div class="player-games" id="games3">
+            <span data-game="J">J♠</span><span data-game="Q">Q</span><span data-game="K">K♥</span><br><span data-game="D">♦</span><span data-game="T">T</span><span data-game="R">R</span>
+        </div>
+    </div>
+</div>
+
+<div class="wrapper">
+    <table>
+        <thead id="stickyPlayers">
+            <tr id="stickyRow">
+                <td style="width:auto"></td>
+                <td id="sh0" colspan="2" style="text-align:left;padding-left:30px;">P1</td>
+                <td id="sh1" colspan="2" style="text-align:left;padding-left:30px;">P2</td>
+                <td id="sh2" colspan="2" style="text-align:left;padding-left:30px;">P3</td>
+                <td id="sh3" colspan="2" style="text-align:left;padding-left:30px;">P4</td>
+                <td style="width:50px"></td>
+            </tr>
+        </thead>
+        <tbody id="gameRows"></tbody>
+        <tr class="total">
+            <td>T</td>
+            <td></td><td id="col0">0</td>
+            <td></td><td id="col1">0</td>
+            <td></td><td id="col2">0</td>
+            <td></td><td id="col3">0</td>
+            <td id="grandTotal">0</td>
+        </tr>
+    </table>
+    <div style="height:300px;"></div>
+</div>
+
+<div id="numPad" class="numpad hidden">
+    <div class="numpad-header">
+        <span style="font-size:16px;font-weight:bold;color:#00ff95;">Introduceți scorul</span>
+        <button onclick="closePad()" class="pad-x">✕</button>
+    </div>
+    <div class="numpad-grid">
+        <button onclick="pressKey('1')">1</button><button onclick="pressKey('2')">2</button><button onclick="pressKey('3')">3</button>
+        <button onclick="pressKey('4')">4</button><button onclick="pressKey('5')">5</button><button onclick="pressKey('6')">6</button>
+        <button onclick="pressKey('7')">7</button><button onclick="pressKey('8')">8</button><button onclick="pressKey('9')">9</button>
+        <button onclick="closePad()">✕</button><button onclick="pressKey('0')">0</button><button onclick="backspace()">⌫</button>
+    </div>
+</div>
+
+<!-- TIE MODAL -->
+<div id="tieModal" class="hidden">
+    <div class="tie-box">
+        <h2>⚖️ Egalitate!</h2>
+        <p id="tieMsg"></p>
+        <button onclick="startTiebreaker()">OK – Departajare</button>
+    </div>
+</div>
+
+<!-- TIEBREAKER OVERLAY -->
+<div id="tiebreakerOverlay" class="hidden">
+    <div class="tb-header">
+        <h2>⚔️ Departajare</h2>
+        <span class="tb-round-badge" id="tbRoundBadge">Runda 1</span>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+            <button onclick="finalizeazaJocTb()" style="background:#00aa55;color:#fff;font-size:13px;padding:5px 12px;border-radius:6px;">Finalizează joc</button>
+            <span id="tbJocIncompletMsg" style="color:#ff4040;font-size:12px;display:none;">Joc incomplet!</span>
+        </div>
+    </div>
+    <div class="tb-scores" id="tbScores"></div>
+    <div class="tb-wrapper">
+        <table>
+            <tbody id="tbRows"></tbody>
+            <tr class="total">
+                <td>T</td>
+                <td></td><td id="tbCol0">0</td>
+                <td></td><td id="tbCol1">0</td>
+                <td></td><td id="tbCol2">0</td>
+                <td></td><td id="tbCol3">0</td>
+                <td id="tbGrandTotal">0</td>
+            </tr>
+        </table>
+        <div style="height:200px;"></div>
+    </div>
+    <div id="tbNumPad" class="numpad hidden" style="z-index:19999;">
+        <div class="numpad-header">
+            <span style="font-size:16px;font-weight:bold;color:#00ff95;">Introduceți scorul</span>
+            <button onclick="closeTbPad()" class="pad-x">✕</button>
+        </div>
+        <div class="numpad-grid">
+            <button onclick="tbPressKey('1')">1</button><button onclick="tbPressKey('2')">2</button><button onclick="tbPressKey('3')">3</button>
+            <button onclick="tbPressKey('4')">4</button><button onclick="tbPressKey('5')">5</button><button onclick="tbPressKey('6')">6</button>
+            <button onclick="tbPressKey('7')">7</button><button onclick="tbPressKey('8')">8</button><button onclick="tbPressKey('9')">9</button>
+            <button onclick="closeTbPad()">✕</button><button onclick="tbPressKey('0')">0</button><button onclick="tbBackspace()">⌫</button>
+        </div>
+    </div>
+</div>
+
+<!-- WINNER MODAL -->
+<div id="winnerModal" class="hidden">
+    <div class="winner-box">
+        <h1>🏆</h1>
+        <p id="winnerMsg"></p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button onclick="saveResultTxt()" style="background:#4af;color:#000;">💾 Salvează</button>
+            <button onclick="closeWinner()">Joc nou</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ==================== MULTI-TAB PROTECTION ==================== */
+// Each tab gets a unique ID so we can identify who wrote to storage
+const TAB_ID = Math.random().toString(36).slice(2);
+// Flag: ignore storage events triggered by our own writes
+let _ignoringStorageEvent = false;
+// Debounce timer for incoming storage events from other tabs
+let _storageDebounce = null;
+// Flag: we are currently loading from storage (suppress saves during load)
+let _loadingFromStorage = false;
+
+/* ==================== MAIN GAME ==================== */
+
+const STORAGE_KEY="rentz_save_v1";
+let activeInput=null, saveTimeout;
+
+const games=[
+    {name:"J♠",negative:false},
+    {name:"Q",negative:true},
+    {name:"K♥",negative:true},
+    {name:"♦",negative:true},
+    {name:"Totale",negative:true},
+    {name:"Rentz",negative:false}
+];
+
+const tbody=document.getElementById("gameRows");
+let rows=[];
+
+games.forEach(g=>{
+    tbody.innerHTML+=`
+    <tr class="section">
+        <td>${g.name}</td>
+        <td class="mini-head" data-p="0" colspan="2"></td>
+        <td class="mini-head" data-p="1" colspan="2"></td>
+        <td class="mini-head" data-p="2" colspan="2"></td>
+        <td class="mini-head" data-p="3" colspan="2"></td>
+        <td></td>
+    </tr>`;
+    for(let i=0;i<4;i++){
+        const prefix=g.name.toUpperCase()==="TOTALE"?"Totale":g.name.toUpperCase()==="RENTZ"?"Rentz":g.name;
+        tbody.innerHTML+=`
+        <tr class="${g.negative?'neg':''}">
+            <td ${i===0?`data-wm="${prefix}"`:""} >${prefix}${i+1}</td>
+            <td><input type="checkbox"></td><td><input type="number" data-player="0"></td>
+            <td><input type="checkbox"></td><td><input type="number" data-player="1"></td>
+            <td><input type="checkbox"></td><td><input type="number" data-player="2"></td>
+            <td><input type="checkbox"></td><td><input type="number" data-player="3"></td>
+            <td class="row-total"></td>
+        </tr>`;
+    }
+});
+
+rows=Array.from(document.querySelectorAll("#gameRows tr")).filter(r=>r.querySelector('input[type="number"]'));
+
+function updateNames(){
+    for(let i=0;i<4;i++){
+        const inp=document.getElementById("name"+i);
+        const name=inp.value||("P"+(i+1));
+        inp.style.fontSize="24px";
+        while(inp.scrollWidth>inp.clientWidth&&parseInt(inp.style.fontSize)>10)
+            inp.style.fontSize=(parseInt(inp.style.fontSize)-1)+"px";
+        document.querySelectorAll(`.mini-head[data-p="${i}"]`).forEach(el=>el.textContent=name);
+        document.querySelectorAll(`#gameRows input[type="number"][data-player="${i}"]`).forEach(el=>{
+            el.placeholder=name;
+        });
+        const sh=document.getElementById("sh"+i);
+        if(sh)sh.textContent=name;
+    }
+    scheduleSave();
+}
+
+function togglePlayer4(){
+    const p4=document.getElementById("name3").value.trim()!=="";
+    const allRows=[...document.querySelectorAll("tbody tr")];
+    allRows.forEach(row=>{
+        if(row.classList.contains("section")){
+            const m=row.querySelector('.mini-head[data-p="3"]');
+            if(m)m.style.display=p4?"table-cell":"none";return;
+        }
+        const inputs=row.querySelectorAll('input[type="number"]');
+        if(!inputs.length)return;
+        const c=row.children;
+        if(c[7])c[7].style.display=p4?"table-cell":"none";
+        if(c[8])c[8].style.display=p4?"table-cell":"none";
+        const title=c[0]?.textContent||"";
+        if(title.endsWith("4"))row.style.display=p4?"table-row":"none";
+    });
+    const tr=document.querySelector("tr.total");
+    if(tr){const c=tr.children;if(c[7])c[7].style.display=p4?"table-cell":"none";if(c[8])c[8].style.display=p4?"table-cell":"none";}
+    const p4Box=document.querySelector(".player-box:nth-child(4)");
+    if(p4Box){
+        const s=p4Box.querySelector(".player-score");const g=p4Box.querySelector(".player-games");
+        if(s)s.style.display=p4?"":"none";if(g)g.style.display=p4?"":"none";
+        p4Box.style.opacity="";
+        if(p4) p4Box.classList.remove("p4-empty");
+        else p4Box.classList.add("p4-empty");
+    }
+    document.querySelectorAll("#games3 span").forEach(el=>{el.style.display=p4?"":"none";});
+    const sh3=document.getElementById("sh3");
+    if(sh3)sh3.style.display=p4?"":"none";
+    document.querySelectorAll("#stickyPlayers tr td").forEach(td=>{
+        td.style.fontSize=p4?"13px":"18px";
+    });
+    updateWatermarkSize();
+}
+
+function scheduleSave(){
+    if(_loadingFromStorage) return; // don't save while loading
+    clearTimeout(saveTimeout);
+    saveTimeout=setTimeout(save, 800);
+}
+
+function save(){
+    if(_loadingFromStorage) return;
+    const data={names:[],inputs:[],checks:[],highlights:[],tabId:TAB_ID,gameFinished:tieChecked};
+    for(let i=0;i<4;i++)data.names.push(document.getElementById("name"+i).value);
+    document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>data.inputs.push(i.value));
+    document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(c=>data.checks.push(c.checked));
+    document.querySelectorAll(".player-games span").forEach(el=>data.highlights.push(el.classList.contains("active")));
+    _ignoringStorageEvent=true;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    setTimeout(()=>{ _ignoringStorageEvent=false; }, 100);
+}
+
+function load(){
+    const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return;
+    const data=JSON.parse(raw);
+    _loadingFromStorage=true;
+    if(data.names)data.names.forEach((n,i)=>{const el=document.getElementById("name"+i);if(el)el.value=n;});
+    const inputs=document.querySelectorAll('#gameRows input[type="number"]');
+    const checks=document.querySelectorAll('#gameRows input[type="checkbox"]');
+    if(data.inputs)data.inputs.forEach((v,i)=>{if(inputs[i])inputs[i].value=v;});
+    if(data.checks)data.checks.forEach((v,i)=>{if(checks[i])checks[i].checked=v;});
+    if(data.highlights)document.querySelectorAll(".player-games span").forEach((el,i)=>{data.highlights[i]?el.classList.add("active"):el.classList.remove("active");});
+    // Restaureaza flag-ul gameFinished ca sa nu re-triggereze modals la refresh
+    if(data.gameFinished) tieChecked=true;
+    _loadingFromStorage=false;
+}
+
+function saveDebounced(){
+    if(_loadingFromStorage) return;
+    clearTimeout(saveTimeout);
+    saveTimeout=setTimeout(()=>save(),300);
+}
+
+function calc(){
+    let cols=[0,0,0,0],grand=0;
+    const p4=document.getElementById("name3").value.trim()!=="";
+    let groupChecks=[];
+    for(let g=0;g<rows.length;g+=4){
+        let group=[0,0,0,0];
+        for(let r=g;r<g+4;r++){
+            const c=rows[r]?.querySelectorAll('input[type="checkbox"]')||[];
+            c.forEach((ch,i)=>{if(ch.checked)group[i]++;});
+        }
+        groupChecks.push(group);
+    }
+    rows.forEach((row,rowIndex)=>{
+        const inputs=row.querySelectorAll('input[type="number"]');
+        const checks=row.querySelectorAll('input[type="checkbox"]');
+        let checkedCount=0;checks.forEach(c=>{if(c.checked)checkedCount++;});
+        let sum=0,hasValue=false;
+        inputs.forEach((inp,i)=>{
+            validateInput(inp);
+            if(inp.value===""||inp.value==="-")return;
+            let v=Number(inp.value);if(isNaN(v))return;
+            hasValue=true;sum+=v;cols[i]+=v;
+        });
+        const totalCell=row.querySelector(".row-total");
+        if(checkedCount>0&&!hasValue){totalCell.textContent="0";totalCell.style.color="#ff4040";}
+        else if(hasValue){
+            totalCell.textContent=sum;grand+=sum;
+            const title=row.children[0].textContent;let expected=null;
+            if(title.startsWith("J"))expected=10;
+            else if(title.startsWith("Q"))expected=-12;
+            else if(title.startsWith("K"))expected=-5;
+            else if(title.startsWith("♦"))expected=p4?-8:-6;
+            else if(title.startsWith("T"))expected=p4?-33:-31;
+            else if(title.startsWith("R"))expected=p4?30:15;
+            totalCell.style.color=(sum!==expected||checkedCount===0)?"#ff4040":"#00ff95";
+        } else {totalCell.textContent="";}
+        checks.forEach((c,i)=>{
+            const group=Math.floor(rowIndex/4);
+            const colInvalid=groupChecks[group]?.[i]>1;
+            c.style.outline=c.checked&&(checkedCount!==1||colInvalid)?"2px solid #ff4040":"none";
+        });
+    });
+    for(let i=0;i<4;i++){
+        document.getElementById("top"+i).textContent=cols[i];
+        document.getElementById("col"+i).textContent=cols[i];
+    }
+    document.getElementById("grandTotal").textContent=grand;
+    saveDebounced();
+    const colsSum=cols.slice(0,p4?4:3).reduce((a,b)=>a+b,0);
+    checkGameEnd(cols,colsSum);
+}
+
+/* ===== GAME END DETECTION ===== */
+let tieChecked=false;
+
+function finalizeazaJoc(){
+    const p4 = document.getElementById("name3").value.trim() !== "";
+    const numPlayers = p4 ? 4 : 3;
+    const targetTotal = p4 ? -72 : -87;
+
+    // Citeste scorurile din elementele top (calculate de updateScores)
+    const activeCols = [];
+    for(let i=0;i<numPlayers;i++){
+        activeCols.push(parseInt(document.getElementById("top"+i).textContent)||0);
+    }
+    const grand = activeCols.reduce((s,v)=>s+v, 0);
+
+    // Verifica totalul
+    if(grand !== targetTotal){ showJocIncomplet(); return; }
+
+    // Verifica bifele - toate grupele trebuie sa aiba cel putin o bifa per jucator
+    for(let gi=0;gi<6;gi++){
+        for(let p=0;p<numPlayers;p++){
+            let hasCheck=false;
+            for(let ri=gi*4;ri<gi*4+4;ri++){
+                if(!rows[ri])continue;
+                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
+                if(cb&&cb.checked){hasCheck=true;break;}
+            }
+            if(!hasCheck){ showJocIncomplet(); return; }
+        }
+    }
+
+    // Joc complet - declanseaza winner
+    const names = getPlayerNames();
+    const ties = findTies(activeCols);
+    tieChecked = false;
+    if(ties.length===0){
+        setTimeout(()=>showWinner(activeCols, names, numPlayers), 100);
+        return;
+    }
+    const tiedNames = ties.slice(0,-1).map(i=>names[i]).join(", ")+" și "+names[ties[ties.length-1]];
+    document.getElementById("tieMsg").innerHTML =
+        `Jucătorii <strong>${tiedNames}</strong> sunt la egalitate.<br><br>Continuăm cu departajarea!`;
+    document.getElementById("tieModal").classList.remove("hidden");
+    window._tbContext = {scores:activeCols, names:names.slice(0,numPlayers), numPlayers, round:1, tiedIndices:ties};
+}
+
+function showJocIncomplet(){
+    const msg = document.getElementById("jocIncompletMsg");
+    msg.style.display = "inline";
+    clearTimeout(window._incompletTimer);
+    window._incompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
+}
+
+function checkGameEnd(cols,grand){
+    // Nu mai declanseaza automat - doar seteaza flag-ul de joc complet
+    const p4=document.getElementById("name3").value.trim()!=="";
+    const numPlayers=p4?4:3;
+    const targetTotal=p4?-72:-87;
+    if(grand!==targetTotal){ window._gameComplete=false; return; }
+    for(let gi=0;gi<6;gi++){
+        for(let p=0;p<numPlayers;p++){
+            let hasCheck=false;
+            for(let ri=gi*4;ri<gi*4+4;ri++){
+                if(!rows[ri])continue;
+                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
+                if(cb&&cb.checked){hasCheck=true;break;}
+            }
+            if(!hasCheck){ window._gameComplete=false; return; }
+        }
+    }
+    window._gameComplete=true;
+}
+
+const BONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 24" width="36" height="14" style="vertical-align:middle;margin:0 2px;filter:drop-shadow(0 0 2px rgba(255,255,255,0.4))"><g fill="#ccc"><circle cx="7" cy="6" r="5"/><circle cx="7" cy="18" r="5"/><circle cx="57" cy="6" r="5"/><circle cx="57" cy="18" r="5"/><rect x="10" y="9" width="44" height="6" rx="3"/></g></svg>`;
+
+function buildWinnerHTML(scores, names, numPlayers){
+    const players = scores.slice(0, numPlayers).map((s,i)=>({s,i}));
+    players.sort((a,b)=>b.s-a.s);
+    const name0 = names[players[0].i]||("P"+(players[0].i+1));
+    const name1 = names[players[1].i]||("P"+(players[1].i+1));
+    let html = `🏆 <strong style="color:#FFD700">${name0}</strong> Campion!<br>`;
+    html += `🥈 ${name1} VC<br>`;
+    if(numPlayers>=3){
+        const name2 = names[players[2].i]||("P"+(players[2].i+1));
+        html += `🥉 ${name2} WC<br>`;
+    }
+    if(numPlayers>=4){
+        const name3 = names[players[3].i]||("P"+(players[3].i+1));
+        html += `${BONE_SVG} <span style="color:#aaa">${name3}</span> ${BONE_SVG}`;
+    }
+    return html;
+}
+
+function showWinner(scores, names, numPlayers){
+    window._lastWinnerCtx = {scores, names, numPlayers};
+    window._prelungireActiva = false;
+    addJocToIstoric(scores, names, numPlayers);
+    // Daca campionatul a fost detectat, addJocToIstoric a deschis campionat modal - nu mai afisa winner
+    if(!document.getElementById("campionatModal").classList.contains("hidden")) return;
+    // Daca suntem in prelungire, nu afisa winnerModal
+    if(window._prelungireActiva) return;
+    document.getElementById("winnerMsg").innerHTML = buildWinnerHTML(scores, names, numPlayers);
+    document.getElementById("winnerModal").classList.remove("hidden");
+}
+
+function showPrelungireModal(numeEgali){
+    document.getElementById("winnerModal").classList.add("hidden");
+    const ist = loadIstoric();
+    const lista = numeEgali.map(n=>`<strong style="color:#FFD700">${n}</strong> (${ist.victorii[n]?.punctaj||0} pct)`).join(" vs ");
+    document.getElementById("campionatIcon").textContent = "⚡";
+    document.getElementById("campionatMsg").innerHTML =
+        `<strong style="color:#ff9900;font-size:18px;">PRELUNGIRE!</strong><br><br>${lista}<br><br><span style="font-size:13px;color:#aaa;">Punctaj egal — campionatul continuă până când un singur jucător are punctajul maxim!</span>`;
+    document.getElementById("campionatMustSave").style.display = "none";
+    document.getElementById("campionatBtnSalveaza").style.display = "none";
+    document.getElementById("campionatBtnContinua").style.display = "";
+    window._campionatWinner = null;
+    document.getElementById("campionatModal").classList.remove("hidden");
+}
+
+function showAlert(msg, icon){
+    document.getElementById("alertIcon").textContent = icon || "ℹ️";
+    document.getElementById("alertMsg").textContent = msg;
+    document.getElementById("alertModal").classList.remove("hidden");
+}
+function closeAlert(){
+    document.getElementById("alertModal").classList.add("hidden");
+}
+
+function closePrelungireModal(){
+    document.getElementById("campionatModal").classList.add("hidden");
+    // Restaureaza butoanele pentru data viitoare
+    document.getElementById("campionatMustSave").style.display = "";
+    document.getElementById("campionatBtnSalveaza").style.display = "";
+    document.getElementById("campionatBtnContinua").style.display = "none";
+    document.getElementById("campionatIcon").textContent = "🥇";
+    resetGame();
+}
+
+/* ==================== ISTORIC SYSTEM ==================== */
+const ISTORIC_KEY = "rentz_istoric_v1";
+
+// Date initiale: scorurile existente ca victorii (fara jocuri in istoric)
+// ── Schimbă această valoare dacă vrei alt prag de campionat ──
+const PUNCTAJ_CAMPIONAT_DEFAULT = 60;
+const PRAG_KEY = "rentz_prag_campionat";
+function getPragCampionat(){ return parseInt(localStorage.getItem(PRAG_KEY))||PUNCTAJ_CAMPIONAT_DEFAULT; }
+function setPragCampionat(val){ localStorage.setItem(PRAG_KEY, val); }
+
+// ── Punctaje per loc ──
+const PCT4_KEY = "rentz_pct4";
+const PCT3_KEY = "rentz_pct3";
+const PCT4_DEFAULT = [3, 2, 1, 0];
+const PCT3_DEFAULT = [2, 1, 0];
+function getPct4(){ try{ const v=JSON.parse(localStorage.getItem(PCT4_KEY)); return Array.isArray(v)&&v.length===4?v:PCT4_DEFAULT; }catch(e){ return PCT4_DEFAULT; } }
+function getPct3(){ try{ const v=JSON.parse(localStorage.getItem(PCT3_KEY)); return Array.isArray(v)&&v.length===3?v:PCT3_DEFAULT; }catch(e){ return PCT3_DEFAULT; } }
+function setPct4(arr){ localStorage.setItem(PCT4_KEY, JSON.stringify(arr)); }
+function setPct3(arr){ localStorage.setItem(PCT3_KEY, JSON.stringify(arr)); }
+
+function istoricEGol(){
+    const ist = loadIstoric();
+    const totalVictorii = Object.values(ist.victorii).reduce((s,v)=>(s+(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0)),0);
+    return totalVictorii === 0 && ist.jocuri.length === 0;
+}
+
+function openSetari(){
+    const gol = istoricEGol();
+    const pct4 = getPct4();
+    const pct3 = getPct3();
+    const prag = getPragCampionat();
+
+    // Populeaza campurile
+    document.getElementById("setariPragInput").value = prag;
+    document.getElementById("pct4_1").value = pct4[0];
+    document.getElementById("pct4_2").value = pct4[1];
+    document.getElementById("pct4_3").value = pct4[2];
+    document.getElementById("pct4_4").value = pct4[3];
+    document.getElementById("pct3_1").value = pct3[0];
+    document.getElementById("pct3_2").value = pct3[1];
+    document.getElementById("pct3_3").value = pct3[2];
+
+    // Blocheaza/deblocheaza campuri punctaje
+    ["pct4_1","pct4_2","pct4_3","pct4_4","pct3_1","pct3_2","pct3_3"].forEach(id=>{
+        const el = document.getElementById(id);
+        el.readOnly = !gol;
+        el.style.opacity = gol ? "1" : "0.4";
+        el.style.cursor = gol ? "pointer" : "not-allowed";
+    });
+    document.getElementById("savePct4Btn") && (document.getElementById("savePct4Btn").disabled = !gol);
+    document.getElementById("savePct3Btn") && (document.getElementById("savePct3Btn").disabled = !gol);
+    document.getElementById("savePct4Btn") && (document.getElementById("savePct4Btn").style.opacity = gol ? "1" : "0.4");
+    document.getElementById("savePct3Btn") && (document.getElementById("savePct3Btn").style.opacity = gol ? "1" : "0.4");
+    const savePctBtn = document.getElementById("savePctBtn");
+    if(savePctBtn){ savePctBtn.disabled = !gol; savePctBtn.style.opacity = gol ? "1" : "0.4"; }
+
+    // Erori ascunse
+    ["setariPragEroare","setariPct4Eroare","setariPct3Eroare"].forEach(id=>{
+        document.getElementById(id).style.display="none";
+    });
+
+    updateSetariRezumat();
+    document.getElementById("setariModal").classList.remove("hidden");
+}
+
+function closeSetari(){
+    document.getElementById("setariModal").classList.add("hidden");
+}
+
+function updateRezumatIstoric(){
+    const prag = getPragCampionat();
+    const pct4 = getPct4();
+    const pct3 = getPct3();
+    const gol = istoricEGol();
+    const lockedMsg = gol ? "" : ` <span style="color:#ff9900;font-size:11px;">⚠️ blocat</span>`;
+    const el = document.getElementById("setariRezumatIstoric");
+    if(!el) return;
+    el.innerHTML = `
+        <div style="display:inline-block;border:1px solid #444;border-radius:8px;padding:5px 12px;font-size:12px;margin-bottom:6px;">
+            Prag: <strong style="color:#FFD700;">${prag} pct</strong>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="border:1px solid #444;border-radius:8px;padding:5px 12px;font-size:12px;">
+                4 jucători: <strong style="color:#fff;">🏆${pct4[0]} 🥈${pct4[1]} 🥉${pct4[2]} 🦴${pct4[3]}</strong>${lockedMsg}
+            </div>
+            <div style="border:1px solid #444;border-radius:8px;padding:5px 12px;font-size:12px;">
+                3 jucători: <strong style="color:#fff;">🏆${pct3[0]} 🥈${pct3[1]} 🥉${pct3[2]}</strong>${lockedMsg}
+            </div>
+        </div>`;
+}
+
+function updateSetariRezumat(){
+    updateRezumatIstoric();
+}
+
+function saveSetariPrag(){
+    const val = parseInt(document.getElementById("setariPragInput").value);
+    const errEl = document.getElementById("setariPragEroare");
+    errEl.style.display = "none";
+    if(isNaN(val) || val < 1){
+        errEl.textContent = "Valoare invalidă!";
+        errEl.style.display = "block";
+        return;
+    }
+    const ist = loadIstoric();
+    const maxPctCurent = Math.max(0, ...Object.values(ist.victorii).map(v=>v.punctaj||0));
+    if(val <= maxPctCurent){
+        errEl.textContent = `Pragul trebuie să fie mai mare decât punctajul maxim curent (${maxPctCurent} pct)!`;
+        errEl.style.display = "block";
+        return;
+    }
+    setPragCampionat(val);
+    PUNCTAJ_CAMPIONAT = val;
+    updateSetariRezumat();
+    showAlert(`Prag campionat salvat: ${val} puncte`, "✅");
+}
+
+function saveSetariPct(){
+    const err4 = document.getElementById("setariPct4Eroare");
+    const err3 = document.getElementById("setariPct3Eroare");
+    err4.style.display = "none"; err3.style.display = "none";
+    const vals4 = [1,2,3,4].map(i=>parseInt(document.getElementById("pct4_"+i).value));
+    const vals3 = [1,2,3].map(i=>parseInt(document.getElementById("pct3_"+i).value));
+    let ok = true;
+    if(vals4.some(v=>isNaN(v)||v<0)){
+        err4.textContent = "Joc 4: toate valorile trebuie să fie numere întregi pozitive sau 0!";
+        err4.style.display = "block"; ok = false;
+    } else if(!(vals4[0]>vals4[1] && vals4[1]>vals4[2] && vals4[2]>vals4[3])){
+        err4.textContent = "Joc 4: trebuie Loc 1 > Loc 2 > Loc 3 > Loc 4!";
+        err4.style.display = "block"; ok = false;
+    }
+    if(vals3.some(v=>isNaN(v)||v<0)){
+        err3.textContent = "Joc 3: toate valorile trebuie să fie numere întregi pozitive sau 0!";
+        err3.style.display = "block"; ok = false;
+    } else if(!(vals3[0]>vals3[1] && vals3[1]>vals3[2])){
+        err3.textContent = "Joc 3: trebuie Loc 1 > Loc 2 > Loc 3!";
+        err3.style.display = "block"; ok = false;
+    }
+    if(!ok) return;
+    setPct4(vals4); setPct3(vals3);
+    updateSetariRezumat();
+    showAlert(`Punctaje salvate!\nJoc 4: ${vals4.join(", ")}\nJoc 3: ${vals3.join(", ")}`, "✅");
+}
+
+function saveSetariPct4(){
+    const errEl = document.getElementById("setariPct4Eroare");
+    errEl.style.display = "none";
+    const vals = [1,2,3,4].map(i=>parseInt(document.getElementById("pct4_"+i).value));
+    if(vals.some(v=>isNaN(v)||v<0)){
+        errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
+        errEl.style.display = "block"; return;
+    }
+    if(!(vals[0]>vals[1] && vals[1]>vals[2] && vals[2]>vals[3])){
+        errEl.textContent = "Trebuie: Loc 1 > Loc 2 > Loc 3 > Loc 4!";
+        errEl.style.display = "block"; return;
+    }
+    setPct4(vals);
+    updateSetariRezumat();
+    showAlert(`Punctaje joc de 4 salvate:\nLoc1=${vals[0]}, Loc2=${vals[1]}, Loc3=${vals[2]}, Loc4=${vals[3]}`, "✅");
+}
+
+function saveSetariPct3(){
+    const errEl = document.getElementById("setariPct3Eroare");
+    errEl.style.display = "none";
+    const vals = [1,2,3].map(i=>parseInt(document.getElementById("pct3_"+i).value));
+    if(vals.some(v=>isNaN(v)||v<0)){
+        errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
+        errEl.style.display = "block"; return;
+    }
+    if(!(vals[0]>vals[1] && vals[1]>vals[2])){
+        errEl.textContent = "Trebuie: Loc 1 > Loc 2 > Loc 3!";
+        errEl.style.display = "block"; return;
+    }
+    setPct3(vals);
+    updateSetariRezumat();
+    showAlert(`Punctaje joc de 3 salvate:\nLoc1=${vals[0]}, Loc2=${vals[1]}, Loc3=${vals[2]}`, "✅");
+}
+// Variabila folosita in cod (se actualizeaza la fiecare citire prin getPragCampionat())
+let PUNCTAJ_CAMPIONAT = getPragCampionat();
+
+const SEED_VICTORII = {
+    "Robi":    {loc1:14, loc2:0, loc3:0, loc4:0, punctaj:0},
+    "Edi":     {loc1:11, loc2:0, loc3:0, loc4:0, punctaj:0},
+    "Mircea":  {loc1:7,  loc2:0, loc3:0, loc4:0, punctaj:0},
+    "Jackson": {loc1:3,  loc2:0, loc3:0, loc4:0, punctaj:0},
+    "Sebi":    {loc1:1,  loc2:0, loc3:0, loc4:0, punctaj:0}
+};
+
+function loadIstoric(){
+    try {
+        const raw = localStorage.getItem(ISTORIC_KEY);
+        if(raw) {
+            const d = JSON.parse(raw);
+            if(!d.campionate) d.campionate = {};
+            // Migrare: adauga punctaj:0 daca lipseste (versiuni vechi)
+            Object.values(d.victorii||{}).forEach(v=>{ if(v.punctaj===undefined) v.punctaj=0; });
+            return d;
+        }
+    } catch(e){}
+    // Prima rulare: initializeaza cu seed
+    const initial = { victorii: JSON.parse(JSON.stringify(SEED_VICTORII)), jocuri: [], campionate: {} };
+    saveIstoric(initial);
+    return initial;
+}
+
+function saveIstoric(data){
+    localStorage.setItem(ISTORIC_KEY, JSON.stringify(data));
+}
+
+function addJocToIstoric(scores, names, numPlayers){
+    const ist = loadIstoric();
+    const players = scores.slice(0, numPlayers).map((s,i)=>({s,i}));
+    players.sort((a,b)=>b.s-a.s);
+
+    const locKeys = ["loc1","loc2","loc3","loc4"];
+    const now = new Date();
+
+    function normName(n){ n=n.trim(); return n.charAt(0).toUpperCase()+n.slice(1).toLowerCase(); }
+
+    // Puncte per loc din setari (sau default)
+    const pctPerLoc = numPlayers === 4 ? getPct4() : getPct3();
+
+    // Adauga la victorii + punctaj
+    players.forEach((p, idx)=>{
+        const name = normName(names[p.i]||("P"+(p.i+1)));
+        if(!ist.victorii[name]) ist.victorii[name] = {loc1:0,loc2:0,loc3:0,loc4:0,punctaj:0};
+        if(ist.victorii[name].punctaj===undefined) ist.victorii[name].punctaj=0;
+        ist.victorii[name][locKeys[idx]] = (ist.victorii[name][locKeys[idx]]||0) + 1;
+        ist.victorii[name].punctaj += pctPerLoc[idx];
+    });
+
+    // Adauga jocul in istoric
+    ist.jocuri.unshift({
+        data: now.toLocaleDateString("ro-RO",{day:"2-digit",month:"2-digit",year:"numeric"}),
+        ora:  now.toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"}),
+        rezultat: players.map((p,idx)=>({
+            loc: idx+1,
+            name: normName(names[p.i]||("P"+(p.i+1))),
+            scor: p.s
+        }))
+    });
+
+    saveIstoric(ist);
+
+    // ── Verificare finalizare campionat ──
+    const toateVictorii = Object.entries(ist.victorii);
+
+    // Pasul 1: cel putin un jucator a atins pragul
+    const pesteP = toateVictorii.filter(([n,v])=>(v.punctaj||0) >= PUNCTAJ_CAMPIONAT);
+    if(pesteP.length === 0) return;
+
+    // Pasul 2: candidati = doar cei cu punctajul MAXIM
+    const maxPct = Math.max(...pesteP.map(([n,v])=>v.punctaj||0));
+    let candidati = toateVictorii.filter(([n,v])=>(v.punctaj||0) === maxPct);
+
+    // Pasul 3: un singur candidat → câștigă direct
+    if(candidati.length === 1){
+        showCampionatModal(candidati[0][0], scores, names, numPlayers);
+        return;
+    }
+
+    // Pasul 4: departajare loc1, loc2, loc3 (doar la prima atingere a pragului)
+    // Daca campionatul era deja in "prelungire" (flag setat), sarim departajarea
+    if(!ist._prelungire){
+        for(const locKey of ["loc1","loc2","loc3"]){
+            const maxLoc = Math.max(...candidati.map(([n,v])=>v[locKey]||0));
+            candidati = candidati.filter(([n,v])=>(v[locKey]||0) === maxLoc);
+            if(candidati.length === 1){
+                const criteriu = locKey === "loc1" ? "locuri 1" : locKey === "loc2" ? "locuri 2" : "locuri 3";
+                showCampionatModal(candidati[0][0], scores, names, numPlayers, criteriu);
+                return;
+            }
+        }
+        // Dupa departajare tot egali → intra in prelungire
+        ist._prelungire = true;
+        saveIstoric(ist);
+        window._prelungireActiva = true;
+        showPrelungireModal(candidati.map(([n])=>n));
+    } else {
+        // In prelungire si tot egali → continua
+        window._prelungireActiva = true;
+        showPrelungireModal(candidati.map(([n])=>n));
+    }
+    // Egalitate nerezolvata → campionatul continua, niciun modal
+}
+
+function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
+    document.getElementById("winnerModal").classList.add("hidden");
+    window._campionatWinner = numeWinner;
+
+    const players = scores.slice(0, numPlayers).map((s,i)=>({s,i}));
+    players.sort((a,b)=>b.s-a.s);
+    const locEmoji = ["🏆","🥈","🥉","🦴"];
+    const rezumat = players.map((p,idx)=>
+        `${locEmoji[idx]} ${names[p.i]||("P"+(p.i+1))} (${p.s} pct)`
+    ).join("<br>");
+
+    const ist = loadIstoric();
+    const punctajWinner = ist.victorii[numeWinner]?.punctaj || 0;
+    let extraMsg = "";
+    if(ist._prelungire){
+        extraMsg = `<br><span style="font-size:12px;color:#ff9900;">⚡ Câștigat după prelungire</span>`;
+    } else if(criteriu){
+        extraMsg = `<br><span style="font-size:12px;color:#ff9900;">⚡ Departajat după ${criteriu}</span>`;
+    }
+
+    document.getElementById("campionatIcon").textContent = "🥇";
+    window._campionatCriteriu = ist._prelungire ? "prelungire" : (criteriu || "");
+    document.getElementById("campionatMsg").innerHTML =
+        `🥇 <strong style="color:#FFD700;font-size:20px;">${numeWinner}</strong><br>a câștigat campionatul<br>cu <strong>${punctajWinner}</strong> puncte!${extraMsg}<br><br><span style="font-size:13px;color:#aaa;">${rezumat}</span>`;
+    document.getElementById("campionatMustSave").style.display = "";
+    document.getElementById("campionatBtnSalveaza").style.display = "";
+    document.getElementById("campionatBtnContinua").style.display = "none";
+    document.getElementById("campionatModal").classList.remove("hidden");
+}
+
+function exportCampionatSiReseteaza(){
+    const numeWinner = window._campionatWinner;
+    const ist = loadIstoric();
+    const now = new Date();
+
+    // Export fișier campionat
+    const locEmoji = ["🏆","🥈","🥉","🦴"];
+    let lines = [];
+    lines.push("=================================");
+    lines.push("  RENTZ - Campionat Finalizat");
+    lines.push(`  Câștigător: ${numeWinner}`);
+    const zz = String(now.getDate()).padStart(2,"0");
+    const ll = String(now.getMonth()+1).padStart(2,"0");
+    const aa = now.getFullYear();
+    lines.push(`  Data: ${zz}.${ll}.${aa}`);
+    lines.push(`  Pragul campionatului: ${getPragCampionat()} puncte`);
+    const pct4cf = getPct4(); const pct3cf = getPct3();
+    lines.push(`  Punctaje joc 4: Loc1=${pct4cf[0]}, Loc2=${pct4cf[1]}, Loc3=${pct4cf[2]}, Loc4=${pct4cf[3]}`);
+    lines.push(`  Punctaje joc 3: Loc1=${pct3cf[0]}, Loc2=${pct3cf[1]}, Loc3=${pct3cf[2]}`);
+    const criteriu = window._campionatCriteriu || "";
+    if(criteriu === "prelungire"){
+        lines.push("  ⚡ Câștigat după prelungire");
+    } else if(criteriu){
+        lines.push(`  ⚡ Departajat după: ${criteriu}`);
+    }
+    lines.push("=================================");
+    lines.push("");
+    lines.push("Clasament general (campionat încheiat):");
+    lines.push("");
+    const col = 14;
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
+    lines.push("-".repeat(col+31));
+    Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
+        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+    });
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Campionate castigate");
+    lines.push("=================================");
+    lines.push("");
+    const campIst = ist.campionate||{};
+    if(Object.keys(campIst).length===0){
+        lines.push("  (niciun campionat anterior)");
+    } else {
+        Object.entries(campIst).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
+            lines.push(padR(name,14) + padL(String(nr),6));
+        });
+    }
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Jocuri jucate in acest campionat");
+    lines.push("=================================");
+    lines.push("");
+    ist.jocuri.forEach(joc=>{
+        lines.push(`[${joc.data} ${joc.ora}]`);
+        joc.rezultat.forEach(r=>{
+            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+        });
+        lines.push("");
+    });
+
+    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rentz_campionat_finalizat_la_${aa}_${ll}_${zz}.txt`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>{ URL.revokeObjectURL(url); }, 2000);
+    showAlert(`Campionat salvat:\nrentz_campionat_finalizat_la_${aa}_${ll}_${zz}.txt\n\n⚠️ Salvarea s-a făcut în folderul download!`, "💾");
+    // Adauga campionat in tabel
+    ist.campionate[numeWinner] = (ist.campionate[numeWinner]||0) + 1;
+
+    // Reseteaza victorii complet (tabel gol pentru campionatul nou)
+    ist.victorii = {};
+    ist.jocuri = [];
+    ist._prelungire = false;
+    saveIstoric(ist);
+
+    // Inchide modalul si reseteaza jocul curent
+    document.getElementById("campionatModal").classList.add("hidden");
+    window._campionatWinner = null;
+    resetGame();
+}
+
+function exportIstoric_silent(){
+    const ist = loadIstoric();
+    const locEmoji = ["🏆","🥈","🥉","🦴"];
+    let lines = [];
+    lines.push("=================================");
+    lines.push("  RENTZ - Clasament general");
+    lines.push(`  Prag campionat: ${getPragCampionat()} puncte`);
+    const pct4s = getPct4(); const pct3s = getPct3();
+    lines.push(`  Punctaje joc 4: Loc1=${pct4s[0]}, Loc2=${pct4s[1]}, Loc3=${pct4s[2]}, Loc4=${pct4s[3]}`);
+    lines.push(`  Punctaje joc 3: Loc1=${pct3s[0]}, Loc2=${pct3s[1]}, Loc3=${pct3s[2]}`);
+    lines.push("=================================");
+    lines.push("");
+    const col = 14;
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
+    lines.push("-".repeat(col+31));
+    Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
+        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+    });
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Campionate castigate");
+    lines.push("=================================");
+    lines.push("");
+    const camp = ist.campionate||{};
+    if(Object.keys(camp).length===0){
+        lines.push("  (niciun campionat incheiat)");
+    } else {
+        Object.entries(camp).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
+            lines.push(padR(name,col) + padL(String(nr),6));
+        });
+    }
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Jocuri jucate");
+    lines.push("=================================");
+    lines.push("");
+    ist.jocuri.forEach(joc=>{
+        lines.push(`[${joc.data} ${joc.ora}]`);
+        joc.rezultat.forEach(r=>{
+            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+        });
+        lines.push("");
+    });
+    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const now = new Date();
+    const fn = [
+        now.getFullYear(),
+        String(now.getMonth()+1).padStart(2,"0"),
+        String(now.getDate()).padStart(2,"0"),
+        String(now.getHours()).padStart(2,"0"),
+        String(now.getMinutes()).padStart(2,"0"),
+        String(now.getSeconds()).padStart(2,"0")
+    ].join("_");
+    a.download = `rentz_inainte_de_resetare_${fn}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return `rentz_inainte_de_resetare_${fn}.txt`;
+}
+
+function resetIstoric(){
+    const fileName = exportIstoric_silent();
+    document.getElementById("resetFileName").textContent = fileName;
+    document.getElementById("confirmResetModal").classList.remove("hidden");
+}
+
+function executeResetIstoric(){
+    saveIstoric({ victorii:{}, jocuri:[], campionate:{}, _prelungire:false });
+    PUNCTAJ_CAMPIONAT = getPragCampionat();
+    renderIstoric();
+}
+
+function openIstoric(){
+    renderIstoric();
+    document.getElementById("istoricOverlay").classList.remove("hidden");
+}
+
+function closeIstoric(){
+    document.getElementById("istoricOverlay").classList.add("hidden");
+}
+
+function renderIstoric(){
+    const ist = loadIstoric();
+    const locEmoji = ["🏆","🥈","🥉","🦴"];
+
+    // Actualizeaza pragul
+    PUNCTAJ_CAMPIONAT = getPragCampionat();
+    updateRezumatIstoric();
+
+    // Tabel victorii - sortat dupa punctaj desc, apoi loc1 desc ca tiebreaker
+    const tbody = document.getElementById("victoriiBody");
+    tbody.innerHTML = "";
+    const sorted = Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0) || b[1].loc1-a[1].loc1);
+    sorted.forEach(([name, v])=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${name}</td><td>${v.loc1||0}</td><td>${v.loc2||0}</td><td>${v.loc3||0}</td><td>${v.loc4||0}</td><td style="color:#FFD700;font-weight:bold;">${v.punctaj||0}</td>`;
+        tbody.appendChild(tr);
+    });
+
+    // Tabel campionate
+    const campBody = document.getElementById("campionateBody");
+    campBody.innerHTML = "";
+    const campSorted = Object.entries(ist.campionate||{}).sort((a,b)=>b[1]-a[1]);
+    if(campSorted.length===0){
+        campBody.innerHTML = `<tr><td colspan="2" style="color:#555;font-size:13px;">Niciun campionat încheiat încă.</td></tr>`;
+    } else {
+        campSorted.forEach(([name,nr])=>{
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${name}</td><td>${nr}</td>`;
+            campBody.appendChild(tr);
+        });
+    }
+
+    // Lista jocuri
+    const list = document.getElementById("joculiList");
+    list.innerHTML = "";
+    if(ist.jocuri.length===0){
+        list.innerHTML = `<div style="color:#555;font-size:13px;padding:8px;">Niciun joc înregistrat încă.</div>`;
+        return;
+    }
+    ist.jocuri.forEach(joc=>{
+        const div = document.createElement("div");
+        div.className = "ist-joc";
+        div.innerHTML = `<div class="ist-joc-date">📅 ${joc.data} ${joc.ora}</div>` +
+            joc.rezultat.map(r=>`
+                <div class="ist-joc-row">
+                    <span class="ist-loc">${locEmoji[r.loc-1]}</span>
+                    <span class="ist-name">${r.name}</span>
+                    <span class="ist-pct">${r.scor} pct</span>
+                </div>`).join("");
+        list.appendChild(div);
+    });
+}
+
+function exportIstoric(){
+    const ist = loadIstoric();
+    const locEmoji = ["🏆","🥈","🥉","🦴"];
+    let lines = [];
+
+    lines.push("=================================");
+    lines.push("  RENTZ - Clasament general");
+    lines.push(`  Prag campionat: ${getPragCampionat()} puncte`);
+    const pct4e2 = getPct4(); const pct3e2 = getPct3();
+    lines.push(`  Punctaje joc 4: Loc1=${pct4e2[0]}, Loc2=${pct4e2[1]}, Loc3=${pct4e2[2]}, Loc4=${pct4e2[3]}`);
+    lines.push(`  Punctaje joc 3: Loc1=${pct3e2[0]}, Loc2=${pct3e2[1]}, Loc3=${pct3e2[2]}`);
+    lines.push("=================================");
+    lines.push("");
+
+    const col = 14;
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
+    lines.push("-".repeat(col+31));
+    Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
+        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+    });
+
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Campionate castigate");
+    lines.push("=================================");
+    lines.push("");
+    const camp = ist.campionate||{};
+    if(Object.keys(camp).length===0){
+        lines.push("  (niciun campionat incheiat)");
+    } else {
+        Object.entries(camp).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
+            lines.push(padR(name,col) + padL(String(nr),6));
+        });
+    }
+
+    lines.push("");
+    lines.push("=================================");
+    lines.push("  Jocuri jucate");
+    lines.push("=================================");
+    lines.push("");
+
+    ist.jocuri.forEach(joc=>{
+        lines.push(`[${joc.data} ${joc.ora}]`);
+        joc.rezultat.forEach(r=>{
+            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+        });
+        lines.push("");
+    });
+
+    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const now = new Date();
+    const fn = [
+        now.getFullYear(),
+        String(now.getMonth()+1).padStart(2,"0"),
+        String(now.getDate()).padStart(2,"0"),
+        String(now.getHours()).padStart(2,"0"),
+        String(now.getMinutes()).padStart(2,"0"),
+        String(now.getSeconds()).padStart(2,"0")
+    ].join("_");
+    a.download = `rentz_${fn}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showAlert(`Fișier salvat:\nrentz_${fn}.txt\n\n⚠️ Exportul s-a făcut în folderul download!`, "💾");
+}
+
+function padR(str, len){ return (str+"").padEnd(len," "); }
+function padL(str, len){ return (str+"").padStart(len," "); }
+
+function importIstoric(event){
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const text = e.target.result;
+        const parsed = parseTxtIstoric(text);
+        if(!parsed){ showAlert("Fișier invalid sau format necunoscut.", "❌"); return; }
+
+        saveIstoric(parsed);
+
+        // Aplica prag si punctaje din fisier, sau default daca lipsesc
+        const newPrag = parsed._parsedPrag || 60;
+        const newPct4 = parsed._parsedPct4 || [3,2,1,0];
+        const newPct3 = parsed._parsedPct3 || [2,1,0];
+        setPragCampionat(newPrag);
+        setPct4(newPct4);
+        setPct3(newPct3);
+        PUNCTAJ_CAMPIONAT = newPrag;
+
+        renderIstoric();
+
+        // Avertisment daca cineva depaseste pragul curent
+        const prag = getPragCampionat();
+        const depasiti = Object.entries(parsed.victorii)
+            .filter(([n,v])=>(v.punctaj||0) >= prag)
+            .map(([n,v])=>`${n} (${v.punctaj} pct)`);
+        if(depasiti.length > 0){
+            showAlert(`Import reușit!\n\n⚠️ Atenție: următorii jucători depășesc pragul de campionat (${prag} pct):\n${depasiti.join(", ")}\n\nVerifică dacă datele importate sunt corecte.`, "⚠️");
+        } else {
+            showAlert("Import reușit!", "✅");
+        }
+        event.target.value="";
+    };
+    reader.readAsText(file, "utf-8");
+}
+
+function parseTxtIstoric(text){
+    try {
+        const ist = { victorii:{}, jocuri:[], campionate:{} };
+        let parsedPrag = null;
+        let parsedPct4 = null;
+        let parsedPct3 = null;
+        const lines = text.split("\n");
+        let mode = null;
+        let currentJoc = null;
+        const locEmojiMap = {"🏆":1,"🥈":2,"🥉":3,"🦴":4};
+
+        for(let i=0;i<lines.length;i++){
+            const line = lines[i].trimEnd();
+
+            // Citeste setarile din header (indiferent de mode)
+            const pragMatch = line.match(/Prag campionat:\s*(\d+)/);
+            if(pragMatch){ parsedPrag = parseInt(pragMatch[1]); continue; }
+            const pct4Match = line.match(/Punctaje joc 4:\s*Loc1=(\d+),\s*Loc2=(\d+),\s*Loc3=(\d+),\s*Loc4=(\d+)/);
+            if(pct4Match){ parsedPct4 = [parseInt(pct4Match[1]),parseInt(pct4Match[2]),parseInt(pct4Match[3]),parseInt(pct4Match[4])]; continue; }
+            const pct3Match = line.match(/Punctaje joc 3:\s*Loc1=(\d+),\s*Loc2=(\d+),\s*Loc3=(\d+)/);
+            if(pct3Match){ parsedPct3 = [parseInt(pct3Match[1]),parseInt(pct3Match[2]),parseInt(pct3Match[3])]; continue; }
+
+            if(line.includes("Clasament victorii") || line.includes("Clasament general"))  { mode="victorii";   continue; }
+            if(line.includes("Campionate castigate")) { mode="campionate"; continue; }
+            if(line.includes("Jocuri jucate"))        { mode="jocuri";    continue; }
+            if(line.startsWith("===") || line.startsWith("---") || line.startsWith("Jucator")) continue;
+
+            if(mode==="victorii" && line.trim() && !line.startsWith("=")){
+                const parts = line.trim().split(/\s+/);
+                if(parts.length>=5){
+                    const name = parts[0];
+                    const hasPct = parts.length >= 6;
+                    const loc1 = parseInt(parts[parts.length - (hasPct?5:4)])||0;
+                    const loc2 = parseInt(parts[parts.length - (hasPct?4:3)])||0;
+                    const loc3 = parseInt(parts[parts.length - (hasPct?3:2)])||0;
+                    const loc4 = parseInt(parts[parts.length - (hasPct?2:1)])||0;
+                    const punctaj = hasPct ? (parseInt(parts[parts.length-1])||0) : 0;
+                    if(name && !isNaN(loc1)) ist.victorii[name]={loc1,loc2,loc3,loc4,punctaj};
+                }
+            }
+
+            if(mode==="campionate" && line.trim() && !line.startsWith("=") && !line.includes("niciun")){
+                const parts = line.trim().split(/\s+/);
+                if(parts.length>=2){
+                    const name = parts[0];
+                    const nr = parseInt(parts[parts.length-1])||0;
+                    if(name && nr>0) ist.campionate[name] = nr;
+                }
+            }
+
+            if(mode==="jocuri"){
+                const dateMatch = line.match(/\[(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2})\]/);
+                if(dateMatch){
+                    if(currentJoc) ist.jocuri.push(currentJoc);
+                    currentJoc = {data:dateMatch[1], ora:dateMatch[2], rezultat:[]};
+                    continue;
+                }
+                if(currentJoc && line.trim()){
+                    for(const [emoji, loc] of Object.entries(locEmojiMap)){
+                        if(line.includes(emoji)){
+                            const rest = line.replace(emoji,"").trim();
+                            const pctMatch = rest.match(/(-?\d+)\s*pct/);
+                            const scor = pctMatch ? parseInt(pctMatch[1]) : 0;
+                            const name = rest.replace(/(-?\d+)\s*pct/,"").trim();
+                            if(name) currentJoc.rezultat.push({loc, name, scor});
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if(currentJoc && currentJoc.rezultat.length>0) ist.jocuri.push(currentJoc);
+
+        // Aplica setarile parsate sau default
+        ist._parsedPrag = parsedPrag;
+        ist._parsedPct4 = parsedPct4;
+        ist._parsedPct3 = parsedPct3;
+
+        return ist;
+    } catch(err){ return null; }
+}
+
+function saveResultTxt(){
+    // Pastrat pentru compatibilitate - acum redirectam catre export complet
+    exportIstoric();
+}
+
+function findTies(scores){
+    const counts={};
+    scores.forEach((s,i)=>{ counts[s]=(counts[s]||[]);counts[s].push(i); });
+    let tied=[];
+    Object.values(counts).forEach(arr=>{ if(arr.length>1)tied=tied.concat(arr); });
+    return tied;
+}
+
+function getPlayerNames(){
+    return [0,1,2,3].map(i=>document.getElementById("name"+i).value||("P"+(i+1)));
+}
+
+/* ===== TIEBREAKER ===== */
+let tbActiveInput=null;
+let tbRows=[];
+
+function startTiebreaker(){
+    document.getElementById("tieModal").classList.add("hidden");
+    buildTiebreaker();
+    document.getElementById("tiebreakerOverlay").classList.remove("hidden");
+}
+
+function buildTiebreaker(){
+    tbEndTriggered=false;
+    closeTbPad();
+    const ctx=window._tbContext;
+    const {scores,names,numPlayers,round}=ctx;
+
+    document.getElementById("tbRoundBadge").textContent="Runda "+round;
+
+    const scoresDiv=document.getElementById("tbScores");
+    scoresDiv.innerHTML="";
+    for(let i=0;i<4;i++){
+        const box=document.createElement("div");
+        box.className="tb-score-box"+(i>=numPlayers?" hidden":"");
+        box.id="tbBox"+i;
+        box.innerHTML=`<div class="tb-name">${names[i]||"P"+(i+1)}</div><div class="tb-val" id="tbVal${i}">${scores[i]||0}</div>`;
+        scoresDiv.appendChild(box);
+    }
+
+    const tbBody=document.getElementById("tbRows");
+    tbBody.innerHTML="";
+    tbRows=[];
+
+    tbBody.innerHTML+=`
+    <tr class="section">
+        <td>Rentz</td>
+        ${[0,1,2,3].map(i=>i<numPlayers?`<td class="mini-head" colspan="2">${names[i]||"P"+(i+1)}</td>`:"").join("")}
+        <td></td>
+    </tr>`;
+
+    for(let i=0;i<numPlayers;i++){
+        const cells=[`<td${i===0?' data-wm="Rentz"':""}>Rentz${i+1}</td>`];
+        for(let p=0;p<4;p++){
+            if(p<numPlayers) cells.push(`<td><input type="checkbox"></td><td><input type="number" data-player="${p}" placeholder="${names[p]||'P'+(p+1)}"></td>`);
+            else cells.push(`<td style="display:none"></td><td style="display:none"></td>`);
+        }
+        cells.push(`<td class="row-total"></td>`);
+        tbBody.innerHTML+=`<tr>${cells.join("")}</tr>`;
+    }
+
+    tbRows=Array.from(document.querySelectorAll("#tbRows tr")).filter(r=>r.querySelector('input[type="number"]'));
+    tbCalc();
+}
+
+function tbCalc(){
+    if(!window._tbContext) return;
+    const ctx=window._tbContext;
+    const {scores,numPlayers}=ctx;
+    const p4=numPlayers===4;
+    const expected=p4?30:15;
+    let cols=new Array(numPlayers).fill(0);
+    let grand=0;
+
+    tbRows.forEach((row)=>{
+        const inputs=row.querySelectorAll('input[type="number"]');
+        const checks=row.querySelectorAll('input[type="checkbox"]');
+        let checkedCount=0;
+        for(let i=0;i<numPlayers;i++){if(checks[i]&&checks[i].checked)checkedCount++;}
+        let sum=0,hasValue=false;
+        for(let i=0;i<numPlayers;i++){
+            const inp=inputs[i];if(!inp)continue;
+            tbValidateInput(inp,p4);
+            if(inp.value===""||inp.value==="-")continue;
+            let v=Number(inp.value);if(isNaN(v))continue;
+            hasValue=true;sum+=v;cols[i]+=v;
+        }
+        const totalCell=row.querySelector(".row-total");
+        if(checkedCount>0&&!hasValue){totalCell.textContent="0";totalCell.style.color="#ff4040";}
+        else if(hasValue){
+            totalCell.textContent=sum;grand+=sum;
+            totalCell.style.color=(sum!==expected||checkedCount===0)?"#ff4040":"#00ff95";
+        } else {totalCell.textContent="";}
+    });
+
+    for(let i=0;i<numPlayers;i++){
+        const total=(scores[i]||0)+cols[i];
+        const el=document.getElementById("tbVal"+i);
+        if(el){el.textContent=total;el.className="tb-val";}
+        const colEl=document.getElementById("tbCol"+i);
+        if(colEl)colEl.textContent=cols[i];
+    }
+    for(let i=numPlayers;i<4;i++){
+        const colEl=document.getElementById("tbCol"+i);
+        if(colEl)colEl.textContent="";
+    }
+    document.getElementById("tbGrandTotal").textContent=grand;
+
+    checkTbEnd(cols,grand,numPlayers);
+}
+
+function tbValidateInput(inp,p4){
+    if(inp.value===""||inp.value==="-"){inp.style.color="#fff";return;}
+    const val=Number(inp.value);
+    const valid=p4?[0,5,10,15].includes(val):[0,5,10].includes(val);
+    inp.style.color=valid?"#fff":"#ff4040";
+}
+
+let tbEndTriggered=false;
+
+function checkTbEnd(tbCols,grand,numPlayers){
+    // Nu mai declanseaza automat - doar seteaza flag
+    window._tbComplete = false;
+    const totalExpected=numPlayers===4?120:45;
+    if(grand!==totalExpected)return;
+    for(let p=0;p<numPlayers;p++){
+        let hasCheck=false;
+        tbRows.forEach(row=>{
+            const cb=row.querySelectorAll('input[type="checkbox"]')[p];
+            if(cb&&cb.checked)hasCheck=true;
+        });
+        if(!hasCheck)return;
+    }
+    window._tbComplete = true;
+}
+
+function finalizeazaJocTb(){
+    const ctx = window._tbContext;
+    if(!ctx) return;
+    const numPlayers = ctx.numPlayers;
+    const totalExpected = numPlayers===4 ? 120 : 45;
+
+    // Citeste scorurile din tbCol0-tbCol3
+    const tbCols = [];
+    for(let i=0;i<numPlayers;i++){
+        tbCols.push(parseInt(document.getElementById("tbCol"+i).textContent)||0);
+    }
+    const grand = tbCols.reduce((s,v)=>s+v,0);
+
+    if(grand !== totalExpected){ showTbJocIncomplet(); return; }
+
+    for(let p=0;p<numPlayers;p++){
+        let hasCheck=false;
+        tbRows.forEach(row=>{
+            const cb=row.querySelectorAll('input[type="checkbox"]')[p];
+            if(cb&&cb.checked)hasCheck=true;
+        });
+        if(!hasCheck){ showTbJocIncomplet(); return; }
+    }
+
+    const newScores = ctx.scores.map((s,i)=>s+(tbCols[i]||0));
+    const ties = findTies(newScores);
+    tbEndTriggered = true;
+
+    if(ties.length===0){
+        setTimeout(()=>showWinner(newScores, ctx.names, numPlayers), 100);
+    } else {
+        const tiedNames = ties.slice(0,-1).map(i=>ctx.names[i]||("P"+(i+1))).join(", ")+" și "+(ctx.names[ties[ties.length-1]]||("P"+(ties[ties.length-1]+1)));
+        setTimeout(()=>{
+            window._tbContext = {...ctx, scores:newScores, round:ctx.round+1, tiedIndices:ties};
+            document.getElementById("tieMsg").innerHTML =
+                "Jucătorii <strong>"+tiedNames+"</strong> sunt la egalitate.<br><br>Continuăm cu runda "+(ctx.round+1)+" de departajare!";
+            document.getElementById("tieModal").classList.remove("hidden");
+        },100);
+    }
+}
+
+function showTbJocIncomplet(){
+    const msg = document.getElementById("tbJocIncompletMsg");
+    msg.style.display = "inline";
+    clearTimeout(window._tbIncompletTimer);
+    window._tbIncompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
+}
+
+function closeWinner(){
+    resetGame();
+}
+
+/* ===== TB NUMPAD ===== */
+function openTbNumpad(inp){
+    if(!inp||inp.type!=="number")return;
+    // Don't reopen if already active on this exact input
+    if(tbActiveInput===inp) return;
+    document.querySelectorAll('#tbRows input[type="number"]').forEach(i=>i.classList.remove("active-input"));
+    tbActiveInput=inp;
+    inp.classList.add("active-input");
+    inp.readOnly=true;
+    document.getElementById("tbNumPad").classList.remove("hidden");
+}
+
+function closeTbPad(){
+    document.getElementById("tbNumPad").classList.add("hidden");
+    if(tbActiveInput){tbActiveInput.classList.remove("active-input");tbActiveInput.readOnly=false;tbActiveInput.blur();}
+    tbActiveInput=null;
+}
+
+function tbPressKey(key){
+    if(!tbActiveInput)return;
+    if(tbActiveInput.value==="")tbActiveInput.value=key;
+    else tbActiveInput.value+=key;
+    tbActiveInput.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function tbBackspace(){
+    if(!tbActiveInput)return;
+    tbActiveInput.value=tbActiveInput.value.slice(0,-1);
+    tbActiveInput.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+/* ===== MAIN NUMPAD ===== */
+function openOurNumpad(inp){
+    if(!inp||inp.type!=="number")return;
+    // Don't reopen if already active on this exact input
+    if(activeInput===inp) return;
+    document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>i.classList.remove("active-input"));
+    activeInput=inp;
+    inp.classList.add("active-input");
+    inp.readOnly=true;
+    document.getElementById("numPad").classList.remove("hidden");
+}
+
+document.addEventListener("click",(e)=>{
+    if(e.target.matches('#gameRows input[type="number"]')){openOurNumpad(e.target);}
+    else if(!e.target.closest('.numpad')&&!e.target.matches('.player-name')){closePad();}
+});
+
+function pressKey(key){
+    if(!activeInput)return;
+    const row=activeInput.closest("tr");
+    const isNeg=row&&row.classList.contains("neg");
+    if(isNeg){
+        if(key!=='0'){activeInput.value=(activeInput.value==="")?"-"+key:activeInput.value+key;}
+        else{if(activeInput.value==="")activeInput.value="0";else if(activeInput.value!=="0"&&activeInput.value!=="-")activeInput.value+="0";}
+    } else {activeInput.value+=key;}
+    activeInput.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function backspace(){
+    if(!activeInput)return;
+    let v=activeInput.value;v=v.slice(0,-1);if(v==="-")v="";
+    activeInput.value=v;activeInput.dispatchEvent(new Event("input",{bubbles:true}));
+}
+
+function closePad(){
+    document.getElementById("numPad").classList.add("hidden");
+    if(activeInput){activeInput.classList.remove("active-input");activeInput.readOnly=false;activeInput.blur();}
+    activeInput=null;
+}
+
+/* ===== MAIN EVENTS ===== */
+document.addEventListener("input",(e)=>{
+    if(e.target.matches('#gameRows input[type="number"],#gameRows input[type="checkbox"]')){calc();updateGameHighlights();}
+    if(e.target.matches('#gameRows input[type="number"]'))validateInput(e.target);
+    if(e.target.matches('.player-name')){updateNames();togglePlayer4();tieChecked=false;}
+});
+
+function updateGameHighlights(){
+    const map=["J","Q","K","D","T","R"];
+    for(let p=0;p<4;p++){
+        map.forEach(game=>{
+            let active=false;
+            document.querySelectorAll("#gameRows tr:not(.section)").forEach(row=>{
+                const title=row.children[0]?.textContent||"";
+                const norm=title.replace("♦","D");
+                if(!norm.startsWith(game))return;
+                const cb=row.querySelectorAll('input[type="checkbox"]')[p];
+                if(cb?.checked)active=true;
+            });
+            document.querySelectorAll(`#games${p} span`).forEach(span=>{
+                if(span.dataset.game===game)span.classList.toggle("active",active);
+            });
+        });
+    }
+}
+
+function validateInput(inp){
+    const row=inp.closest("tr");if(!row)return;
+    const title=row.children[0]?.textContent||"";
+    const val=Number(inp.value);
+    if(inp.value===""||inp.value==="-"){inp.style.color="#fff";return;}
+    const p4=document.getElementById("name3").value.trim()!=="";
+    let valid=false;
+    if(title.startsWith("J"))valid=[0,10].includes(val);
+    else if(title.startsWith("Q"))valid=[0,-3,-6,-9,-12].includes(val);
+    else if(title.startsWith("K"))valid=[0,-5].includes(val);
+    else if(title.startsWith("♦")){const min=p4?-8:-6;valid=val>=min&&val<=0;}
+    else if(title.startsWith("T")){const min=p4?-33:-31;valid=val<=0&&val>=min;}
+    else if(title.startsWith("R"))valid=p4?[0,5,10,15].includes(val):[0,5,10].includes(val);
+    inp.style.color=valid?"#fff":"#ff4040";
+}
+
+function resetGame(){
+    // Close any open numpads and release inputs FIRST
+    if(activeInput){ activeInput.readOnly=false; activeInput.classList.remove("active-input"); activeInput=null; }
+    if(tbActiveInput){ tbActiveInput.readOnly=false; tbActiveInput.classList.remove("active-input"); tbActiveInput=null; }
+    document.getElementById("numPad").classList.add("hidden");
+    document.getElementById("tbNumPad").classList.add("hidden");
+
+    // Clear storage - write a reset marker with our tab ID so other tabs reload cleanly
+    _ignoringStorageEvent=true;
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem(STORAGE_KEY+"_reset", JSON.stringify({by:TAB_ID,ts:Date.now()}));
+    setTimeout(()=>{ _ignoringStorageEvent=false; }, 150);
+    clearTimeout(saveTimeout);
+
+    document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{ x.readOnly=false; x.value=""; });
+    document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(x=>x.checked=false);
+
+    ["P1","P2","P3",""].forEach((v,i)=>{ document.getElementById("name"+i).value=v; });
+
+    for(let i=0;i<4;i++){
+        document.getElementById("top"+i).textContent="0";
+        document.getElementById("col"+i).textContent="0";
+    }
+    document.getElementById("grandTotal").textContent="0";
+    document.querySelectorAll(".player-games span").forEach(el=>el.classList.remove("active"));
+    tieChecked=false;
+    tbEndTriggered=false;
+    document.getElementById("tiebreakerOverlay").classList.add("hidden");
+    document.getElementById("tieModal").classList.add("hidden");
+    document.getElementById("winnerModal").classList.add("hidden");
+    window._tbContext=null;
+    tbRows=[];
+    togglePlayer4();
+    updateNames();
+    calc();
+    updateGameHighlights();
+    updateWatermarkSize();
+}
+
+function newGame(){
+    document.getElementById("confirmModal").classList.remove("hidden");
+}
+
+// Persistent tiebreaker overlay listeners (attached once)
+(function(){
+    const overlay=document.getElementById("tiebreakerOverlay");
+    overlay.addEventListener("input",function(e){
+        if(e.target.matches('input[type="number"],input[type="checkbox"]')) tbCalc();
+    });
+    overlay.addEventListener("click",function(e){
+        if(e.target.matches('input[type="number"]')) openTbNumpad(e.target);
+        else if(!e.target.closest('#tbNumPad')) closeTbPad();
+    });
+})();
+
+function updateWatermarkSize(){
+    const p4 = document.getElementById("name3").value.trim() !== "";
+    const groupSize = p4 ? 4 : 3;
+    const sampleRow = rows.find(r => r.style.display !== "none");
+    if(!sampleRow) return;
+    const rowH = sampleRow.getBoundingClientRect().height;
+    const totalH = rowH * groupSize;
+    const fs = Math.floor(totalH * 0.99);
+    document.documentElement.style.setProperty('--wm-size', fs + 'px');
+}
+
+/* ==================== MULTI-TAB STORAGE SYNC (FIXED) ==================== */
+// Only sync FROM other tabs when this tab does NOT have focus or an active input
+// This prevents the loop: Tab A saves → Tab B reloads → Tab B saves → Tab A reloads → ...
+
+window.addEventListener("storage",(e)=>{
+    // Ignore events we ourselves triggered
+    if(_ignoringStorageEvent) return;
+
+    if(e.key===STORAGE_KEY+"_reset"){
+        // Another tab pressed "Joc nou" - parse to check it wasn't us
+        try {
+            const meta = JSON.parse(e.newValue||"{}");
+            if(meta.by===TAB_ID) return; // we did this, skip
+        } catch(err){}
+
+        // Other tab reset: close our numpad safely and reload clean state
+        clearTimeout(_storageDebounce);
+        _storageDebounce = setTimeout(()=>{
+            // Don't call resetGame() - that would re-write storage and loop
+            // Just clear our local UI to match the empty storage
+            if(activeInput){ activeInput.readOnly=false; activeInput.classList.remove("active-input"); activeInput=null; }
+            if(tbActiveInput){ tbActiveInput.readOnly=false; tbActiveInput.classList.remove("active-input"); tbActiveInput=null; }
+            document.getElementById("numPad").classList.add("hidden");
+            document.getElementById("tbNumPad").classList.add("hidden");
+
+            _loadingFromStorage=true;
+            document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{x.readOnly=false;x.value="";});
+            document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(x=>x.checked=false);
+            ["P1","P2","P3",""].forEach((v,i)=>{ document.getElementById("name"+i).value=v; });
+            _loadingFromStorage=false;
+
+            tieChecked=false;
+            tbEndTriggered=false;
+            document.getElementById("tiebreakerOverlay").classList.add("hidden");
+            document.getElementById("tieModal").classList.add("hidden");
+            document.getElementById("winnerModal").classList.add("hidden");
+            window._tbContext=null;
+            tbRows=[];
+            togglePlayer4();
+            updateNames();
+            // Recalc without saving
+            _loadingFromStorage=true;
+            calc();
+            _loadingFromStorage=false;
+            updateGameHighlights();
+            updateWatermarkSize();
+        }, 200);
+        return;
+    }
+
+    if(e.key===STORAGE_KEY){
+        // Another tab updated game data
+        // Skip if WE have an active input (we are the leader right now)
+        if(activeInput || tbActiveInput) return;
+        // Skip if this tab is focused and a name input is being edited
+        if(document.hasFocus() && document.activeElement && document.activeElement.classList.contains('player-name')) return;
+
+        // Debounce to avoid rapid-fire updates from multiple tabs
+        clearTimeout(_storageDebounce);
+        _storageDebounce = setTimeout(()=>{
+            _loadingFromStorage=true;
+            load();
+            togglePlayer4();
+            _loadingFromStorage=false;
+            // Recalc without triggering another save
+            _loadingFromStorage=true;
+            calc();
+            _loadingFromStorage=false;
+            updateGameHighlights();
+        }, 300);
+    }
+});
+function showToast(msg){
+    const div=document.createElement("div");
+    div.textContent=msg;
+    div.style.position="fixed";
+    div.style.bottom="20px";
+    div.style.left="50%";
+    div.style.transform="translateX(-50%)";
+    div.style.background="#00ff95";
+    div.style.color="#000";
+    div.style.padding="10px 14px";
+    div.style.borderRadius="8px";
+    div.style.fontWeight="bold";
+    div.style.zIndex="99999";
+    document.body.appendChild(div);
+
+    setTimeout(()=>div.remove(),2000);
+}
+/* ==================== INIT ==================== */
+load();
+updateNames();
+togglePlayer4();
+_loadingFromStorage=true;
+calc();
+_loadingFromStorage=false;
+updateGameHighlights();
+updateWatermarkSize();
+</script>
+</body>
+</html>
