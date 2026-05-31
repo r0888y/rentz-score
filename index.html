@@ -545,7 +545,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <div id="confirmResetModal" class="hidden" style="position:fixed;inset:0;z-index:36000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;">
     <div class="confirm-box">
         <h2>⚠️ Șterge tot istoricul</h2>
-        <p style="font-size:13px;">Această acțiune este <strong style="color:#ff4040;">IREVERSIBILĂ!</strong><br><br>Totuși fac o salvare...<br>Am salvat: <strong id="resetFileName" style="color:#00ff95;word-break:break-all;"></strong><br>în folderul download.</p>
+        <p style="font-size:13px;">Această acțiune este <strong style="color:#ff4040;">IREVERSIBILĂ!</strong><br><br>Totuși fac o salvare înainte de ștergere.</p>
         <div class="confirm-btns">
             <button class="btn-cancel" onclick="document.getElementById('confirmResetModal').classList.add('hidden')">Anulează</button>
             <button style="background:#ff4040;" onclick="document.getElementById('confirmResetModal').classList.add('hidden');executeResetIstoric()">Da, șterge tot</button>
@@ -666,13 +666,14 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         </button>
     </div>
 
+</div>
+
+<div class="ist-actions" style="position:sticky;top:0;z-index:10;background:#111;padding:6px 8px;display:flex;gap:8px;">
+    <button class="ist-export-btn" onclick="exportIstoric()">⬇ Exportă .txt</button>
+    <label class="ist-import-btn" style="cursor:pointer;">⬆ Importă .txt<input type="file" accept=".txt" style="display:none" onchange="importIstoric(event)"></label>
 </div>     
 
     <div class="ist-body">
-        <div class="ist-actions">
-            <button class="ist-export-btn" onclick="exportIstoric()">⬇ Exportă .txt</button>
-            <label class="ist-import-btn">⬆ Importă .txt<input type="file" accept=".txt" style="display:none" onchange="importIstoric(event)"></label>
-        </div>
         <div id="setariRezumatIstoric" style="font-size:12px;color:#aaa;padding:6px 4px 10px;line-height:1.8;"></div>
         <div class="ist-section-title">Clasament general</div>
         <table class="ist-victorii-table" id="victoriiTable">
@@ -704,8 +705,8 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     <div class="campionat-box">
         <h1 id="campionatIcon">🥇</h1>
         <p id="campionatMsg"></p>
-        <div class="must-save" id="campionatMustSave">⚠️ Trebuie să salvezi înainte de a continua!</div>
-        <button id="campionatBtnSalveaza" onclick="exportCampionatSiReseteaza()" style="font-size:15px;padding:10px 22px;">💾 Salvează &amp; Resetează</button>
+        <div class="must-save" id="campionatMustSave" style="display:none;">⚠️ Trebuie să salvezi înainte de a continua!</div>
+        <button id="campionatBtnSalveaza" onclick="okCampionat()" style="font-size:15px;padding:10px 22px;">OK</button>
         <button id="campionatBtnContinua" onclick="closePrelungireModal()" style="font-size:15px;padding:10px 22px;display:none;">⚡ OK, continuăm!</button>
     </div>
 </div>
@@ -913,7 +914,11 @@ function updateNames(){
             el.placeholder=name;
         });
         const sh=document.getElementById("sh"+i);
-        if(sh)sh.textContent=name;
+        if(sh){
+            sh.dataset.name=name;
+            sh.dataset.namesize=inp.style.fontSize||"14";
+            sh.textContent=name;
+        }
     }
     scheduleSave();
 }
@@ -1039,6 +1044,45 @@ function calc(){
         document.getElementById("col"+i).textContent=cols[i];
     }
     document.getElementById("grandTotal").textContent=grand;
+
+    // Loc + diferenta sub scorul din cardul de sus
+    const numP = p4?4:3;
+    const activeCols = cols.slice(0,numP);
+    const sorted = [...activeCols].map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+    const locuri = new Array(numP);
+    sorted.forEach((p,rank)=>{
+        // Daca are acelasi scor ca cel dinaintea lui, primeste acelasi loc
+        if(rank>0 && sorted[rank].s===sorted[rank-1].s){
+            locuri[p.i]=locuri[sorted[rank-1].i];
+        } else {
+            locuri[p.i]=rank+1;
+        }
+    });
+    const romani = ["I","II","III","IV"];
+    for(let i=0;i<numP;i++){
+        const loc=locuri[i];
+        let diffStr="";
+        if(loc>1){
+            const prevScore=sorted[loc-2].s;
+            const diff=activeCols[i]-prevScore;
+            diffStr=` (${diff})`;
+        }
+        let el=document.getElementById("loc"+i);
+        if(!el){
+            el=document.createElement("div");
+            el.id="loc"+i;
+            el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
+            const topEl=document.getElementById("top"+i);
+            topEl.parentNode.insertBefore(el, topEl.nextSibling);
+        }
+        el.textContent=romani[loc-1]+diffStr;
+    }
+
+    // Sticky header - revenire la dimensiunea originala a numelui
+    for(let i=0;i<numP;i++){
+        const sh = document.getElementById("sh"+i);
+        if(sh && sh.dataset.name) sh.textContent = sh.dataset.name;
+    }
     saveDebounced();
     const colsSum=cols.slice(0,p4?4:3).reduce((a,b)=>a+b,0);
     checkGameEnd(cols,colsSum);
@@ -1169,6 +1213,33 @@ function exportJocTxtContent(scores, tip="finalizat"){
         lines.push("");
     });
     lines.push(sep);
+
+    // Prelungiri daca au existat
+    const tbRowsEl = document.querySelectorAll('#tbRows tr');
+    const hasTb = Array.from(tbRowsEl).some(r=>
+        Array.from(r.querySelectorAll('input[type="number"]')).some(inp=>inp.value!=="")
+    );
+    if(hasTb){
+        lines.push("");
+        lines.push("PRELUNGIRE (Departajare):");
+        lines.push(sep);
+        tbRowsEl.forEach(row=>{
+            const inputs = row.querySelectorAll('input[type="number"]');
+            const checks = row.querySelectorAll('input[type="checkbox"]');
+            if(!inputs.length) return;
+            const label = row.querySelector('td:first-child')?.textContent||"";
+            let line = pL(label, NW);
+            for(let p=0;p<numPlayers;p++){
+                const checked = checks[p]?.checked ? "☑" : "☐";
+                const raw = inputs[p]?.value;
+                const num = raw!=="" && raw!==undefined ? parseInt(raw)||0 : 0;
+                line += checked + pR(num, NW2) + " ".repeat(GAP);
+            }
+            lines.push(line);
+        });
+        lines.push(sep);
+    }
+
     return lines.join("\n");
 }
 
@@ -1214,7 +1285,7 @@ function showWinner(scores, names, numPlayers){
     // Un singur fisier combinat - evita problema Android cu multiple downloads
     const now2 = new Date();
     const fn2 = [now2.getFullYear(),String(now2.getMonth()+1).padStart(2,"0"),String(now2.getDate()).padStart(2,"0"),String(now2.getHours()).padStart(2,"0"),String(now2.getMinutes()).padStart(2,"0"),String(now2.getSeconds()).padStart(2,"0")].join("_");
-    const fname = `rentz_joc_${fn2}.txt`;
+    const fname = `joc_istoric_${fn2}.txt`;
     const combined = exportJocTxtContent(scores, "finalizat") + "\n\n" + "=".repeat(40) + "\n\n" + exportIstoricContent();
     const blob = new Blob([combined], {type:"text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -1329,6 +1400,7 @@ function openSetari(){
     });
 
     updateSetariRezumat();
+    history.pushState({modal:'setari'}, '');
     document.getElementById("setariModal").classList.remove("hidden");
 }
 
@@ -1566,47 +1638,66 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     } else if(criteriu){
         extraMsg = `<br><span style="font-size:12px;color:#ff9900;">⚡ Departajat după ${criteriu}</span>`;
     }
-
-    // Export cu numele corect pentru campionat
-    const lastCtx = window._lastWinnerCtx;
-    const fname = lastCtx ? exportJocTxt(lastCtx.scores, "campionat") : (window._lastJocFname||"");
-    window._lastJocFname = fname;
-
-    document.getElementById("campionatIcon").textContent = "🥇";
     window._campionatCriteriu = ist._prelungire ? "prelungire" : (criteriu || "");
+
+    // Genereaza continutul campionat
+    const campContent = exportCampionatContent(numeWinner, ist);
+    // Genereaza continutul jocului
+    const jocContent = exportJocTxtContent(scores, "campionat");
+    // Combina intr-un singur fisier
+    const now = new Date();
+    const fn = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0"),String(now.getHours()).padStart(2,"0"),String(now.getMinutes()).padStart(2,"0"),String(now.getSeconds()).padStart(2,"0")].join("_");
+    const fname = `joc_istoric_campionat_${fn}.txt`;
+    const combined = jocContent + "\n\n" + "=".repeat(40) + "\n\n" + campContent;
+    const blob = new Blob([combined], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Reset campionat automat
+    ist.campionate[numeWinner] = (ist.campionate[numeWinner]||0) + 1;
+    ist.victorii = {};
+    ist.jocuri = [];
+    ist._prelungire = false;
+    saveIstoric(ist);
+    window._campionatWinner = null;
+    resetGame();
+
+    // Afiseaza mesaj
+    document.getElementById("campionatIcon").textContent = "🥇";
     document.getElementById("campionatMsg").innerHTML =
-        `🥇 <strong style="color:#FFD700;font-size:20px;">${numeWinner}</strong><br>a câștigat campionatul<br>cu <strong>${punctajWinner}</strong> puncte!${extraMsg}<br><br><span style="font-size:13px;color:#aaa;">${rezumat}</span><br><br><span style="font-size:12px;color:#aaa;">💾 Joc salvat în<br><em>${fname}</em></span>`;
-    document.getElementById("campionatMustSave").style.display = "";
+        `🥇 <strong style="color:#FFD700;font-size:20px;">${numeWinner}</strong><br>a câștigat campionatul<br>cu <strong>${punctajWinner}</strong> puncte!${extraMsg}<br><br><span style="font-size:13px;color:#aaa;">${rezumat}</span><br><br><span style="font-size:12px;color:#aaa;">💾 Joc și campionat salvat în<br><em>${fname}</em></span>`;
+    document.getElementById("campionatMustSave").style.display = "none";
     document.getElementById("campionatBtnSalveaza").style.display = "";
     document.getElementById("campionatBtnContinua").style.display = "none";
     document.getElementById("campionatModal").classList.remove("hidden");
 }
 
-function exportCampionatSiReseteaza(){
-    const numeWinner = window._campionatWinner;
-    const ist = loadIstoric();
-    const now = new Date();
+function okCampionat(){
+    document.getElementById("campionatModal").classList.add("hidden");
+}
 
-    // Export fișier campionat
+function exportCampionatContent(numeWinner, ist){
+    const now = new Date();
+    const zz = String(now.getDate()).padStart(2,"0");
+    const ll = String(now.getMonth()+1).padStart(2,"0");
+    const aa = now.getFullYear();
     const locEmoji = ["🏆","🥈","🥉","🦴"];
     let lines = [];
     lines.push("=================================");
     lines.push("  RENTZ - Campionat Finalizat");
     lines.push(`  Câștigător: ${numeWinner}`);
-    const zz = String(now.getDate()).padStart(2,"0");
-    const ll = String(now.getMonth()+1).padStart(2,"0");
-    const aa = now.getFullYear();
     lines.push(`  Data: ${zz}.${ll}.${aa}`);
     lines.push(`  Pragul campionatului: ${getPragCampionat()} puncte`);
     const pct4cf = getPct4(); const pct3cf = getPct3();
     lines.push(`  Punctaje joc 4: Loc1=${pct4cf[0]}, Loc2=${pct4cf[1]}, Loc3=${pct4cf[2]}, Loc4=${pct4cf[3]}`);
     lines.push(`  Punctaje joc 3: Loc1=${pct3cf[0]}, Loc2=${pct3cf[1]}, Loc3=${pct3cf[2]}`);
     const criteriu = window._campionatCriteriu || "";
-    if(criteriu === "prelungire"){
-        lines.push("  ⚡ Câștigat după prelungire");
-    } else if(criteriu){
-        lines.push(`  ⚡ Departajat după: ${criteriu}`);
-    }
+    if(criteriu === "prelungire") lines.push("  ⚡ Câștigat după prelungire");
+    else if(criteriu) lines.push(`  ⚡ Departajat după: ${criteriu}`);
     lines.push("=================================");
     lines.push("");
     lines.push("Clasament general (campionat încheiat):");
@@ -1615,7 +1706,9 @@ function exportCampionatSiReseteaza(){
     lines.push(padR("Jucator",col) + padL("Loc1",5) + padL("Loc2",5) + padL("Loc3",5) + padL("Loc4",5) + padL("Jucate/Total",10) + padL("Pct",6));
     lines.push("-".repeat(col+31));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),5) + padL(String(v.loc2||0),5) + padL(String(v.loc3||0),5) + padL(String(v.loc4||0),5) + padL(jucateEx+"/"+totEx,10) + padL(String(v.punctaj||0),6));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0);
+        const totEx=ist.jocuri?ist.jocuri.length:0;
+        lines.push(padR(name,col) + padL(String(v.loc1||0),5) + padL(String(v.loc2||0),5) + padL(String(v.loc3||0),5) + padL(String(v.loc4||0),5) + padL(jucateEx+"/"+totEx,10) + padL(String(v.punctaj||0),6));
     });
     lines.push("");
     lines.push("=================================");
@@ -1635,38 +1728,14 @@ function exportCampionatSiReseteaza(){
     lines.push("  Jocuri jucate in acest campionat");
     lines.push("=================================");
     lines.push("");
-    ist.jocuri.forEach(joc=>{
+    (ist.jocuri||[]).forEach(joc=>{
         lines.push(`[${joc.data} ${joc.ora}]`);
-        joc.rezultat.forEach(r=>{
+        (joc.rezultat||[]).forEach(r=>{
             lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,10)} ${String(r.scor).padStart(5)} pct`);
         });
         lines.push("");
     });
-
-    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rentz_campionat_finalizat_la_${aa}_${ll}_${zz}.txt`;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>{ URL.revokeObjectURL(url); }, 2000);
-    showAlert(`Campionat salvat:\nrentz_campionat_finalizat_la_${aa}_${ll}_${zz}.txt\n\n⚠️ Salvarea s-a făcut în folderul download!`, "💾");
-    // Adauga campionat in tabel
-    ist.campionate[numeWinner] = (ist.campionate[numeWinner]||0) + 1;
-
-    // Reseteaza victorii complet (tabel gol pentru campionatul nou)
-    ist.victorii = {};
-    ist.jocuri = [];
-    ist._prelungire = false;
-    saveIstoric(ist);
-
-    // Inchide modalul si reseteaza jocul curent
-    document.getElementById("campionatModal").classList.add("hidden");
-    window._campionatWinner = null;
-    resetGame();
+    return lines.join("\n");
 }
 
 function exportIstoric_silent(){
@@ -1725,27 +1794,28 @@ function exportIstoric_silent(){
         String(now.getMinutes()).padStart(2,"0"),
         String(now.getSeconds()).padStart(2,"0")
     ].join("_");
-    a.download = `rentz_inainte_de_resetare_${fn}.txt`;
+    a.download = `istoric_reset_${fn}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    return `rentz_inainte_de_resetare_${fn}.txt`;
+    return `istoric_reset_${fn}.txt`;
 }
 
 function resetIstoric(){
-    const fileName = exportIstoric_silent();
-    document.getElementById("resetFileName").textContent = fileName;
     document.getElementById("confirmResetModal").classList.remove("hidden");
 }
 
 function executeResetIstoric(){
+    const fileName = exportIstoric_silent();
     saveIstoric({ victorii:{}, jocuri:[], campionate:{}, _prelungire:false });
     PUNCTAJ_CAMPIONAT = getPragCampionat();
     renderIstoric();
+    showAlert(`💾 Salvat în:\n${fileName}\n(folderul download)`, "💾");
 }
 
 function openIstoric(){
+    history.pushState({modal:'istoric'}, '');
     renderIstoric();
     document.getElementById("istoricOverlay").classList.remove("hidden");
 }
@@ -1863,7 +1933,7 @@ function exportIstoricContent(){
 function exportIstoric(){
     const now = new Date();
     const fn = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0"),String(now.getHours()).padStart(2,"0"),String(now.getMinutes()).padStart(2,"0"),String(now.getSeconds()).padStart(2,"0")].join("_");
-    const fname = `rentz_${fn}.txt`;
+    const fname = `export_${fn}.txt`;
     const blob = new Blob([exportIstoricContent()], {type:"text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1871,6 +1941,7 @@ function exportIstoric(){
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showAlert(`💾 Fișier salvat:\n${fname}\n\n⚠️ Exportul s-a efectuat în folderul download!`, "💾");
     return fname;
 }
 
@@ -2110,6 +2181,37 @@ function tbCalc(){
         if(colEl)colEl.textContent="";
     }
     document.getElementById("tbGrandTotal").textContent=grand;
+
+    // Loc + diferenta in timp real pentru TB
+    const totals = Array.from({length:numPlayers},(_,i)=>(scores[i]||0)+cols[i]);
+    const sortedTb = [...totals].map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
+    const locuriTb = new Array(numPlayers);
+    sortedTb.forEach((p,rank)=>{
+        if(rank>0 && sortedTb[rank].s===sortedTb[rank-1].s){
+            locuriTb[p.i]=locuriTb[sortedTb[rank-1].i];
+        } else {
+            locuriTb[p.i]=rank+1;
+        }
+    });
+    const romaniTb=["I","II","III","IV"];
+    for(let i=0;i<numPlayers;i++){
+        const loc=locuriTb[i];
+        let diffStr="";
+        if(loc>1){
+            const prevScore=sortedTb[loc-2].s;
+            const diff=totals[i]-prevScore;
+            diffStr=` (${diff})`;
+        }
+        let el=document.getElementById("tbloc"+i);
+        if(!el){
+            el=document.createElement("div");
+            el.id="tbloc"+i;
+            el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
+            const valEl=document.getElementById("tbVal"+i);
+            if(valEl) valEl.parentNode.insertBefore(el, valEl.nextSibling);
+        }
+        el.textContent=romaniTb[loc-1]+diffStr;
+    }
 
     checkTbEnd(cols,grand,numPlayers);
 }
@@ -2475,6 +2577,30 @@ calc();
 _loadingFromStorage=false;
 updateGameHighlights();
 updateWatermarkSize();
+
+// Handler Back telefon - inchide modalul activ in loc sa iasa din aplicatie
+window.addEventListener('popstate', function(){
+    const modals = [
+        {id:'setariModal',     close: ()=>closeSetari()},
+        {id:'istoricOverlay',  close: ()=>closeIstoric()},
+        {id:'alertModal',      close: ()=>document.getElementById('alertModal').classList.add('hidden')},
+        {id:'winnerModal',     close: ()=>document.getElementById('winnerModal').classList.add('hidden')},
+        {id:'campionatModal',  close: ()=>document.getElementById('campionatModal').classList.add('hidden')},
+        {id:'tieModal',        close: ()=>document.getElementById('tieModal').classList.add('hidden')},
+        {id:'confirmModal',    close: ()=>document.getElementById('confirmModal').classList.add('hidden')},
+        {id:'confirmResetModal', close: ()=>document.getElementById('confirmResetModal').classList.add('hidden')},
+        {id:'jocCompletAlertModal', close: ()=>document.getElementById('jocCompletAlertModal').classList.add('hidden')},
+        {id:'prelungireCompletaAlertModal', close: ()=>document.getElementById('prelungireCompletaAlertModal').classList.add('hidden')},
+    ];
+    for(const m of modals){
+        const el = document.getElementById(m.id);
+        if(el && !el.classList.contains('hidden')){
+            m.close();
+            history.pushState({}, ''); // re-adauga entry ca sa nu iasa din app
+            return;
+        }
+    }
+});
 </script>
 </body>
 </html>
