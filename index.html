@@ -676,7 +676,17 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         <div id="setariRezumatIstoric" style="font-size:12px;color:#aaa;padding:6px 4px 10px;line-height:1.8;"></div>
         <div class="ist-section-title">Clasament general</div>
         <table class="ist-victorii-table" id="victoriiTable">
-            <thead><tr><th>Jucător</th><th>🏆 Loc 1</th><th>🥈 Loc 2</th><th>🥉 Loc 3</th><th>🦴 Loc 4</th><th>⭐ Punctaj</th></tr></thead>
+            <thead>
+                <tr>
+                    <th rowspan="2">Jucător</th>
+                    <th colspan="4">Evidență locuri ocupate:</th>
+                    <th rowspan="2">Jucate/<br>Total</th>
+                    <th rowspan="2">⭐ Punctaj</th>
+                </tr>
+                <tr>
+                    <th>🏆</th><th>🥈</th><th>🥉</th><th>🦴</th>
+                </tr>
+            </thead>
             <tbody id="victoriiBody"></tbody>
         </table>
         <div class="ist-section-title">🥇 Campionate câștigate</div>
@@ -1516,10 +1526,10 @@ function exportCampionatSiReseteaza(){
     lines.push("Clasament general (campionat încheiat):");
     lines.push("");
     const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
-    lines.push("-".repeat(col+31));
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
+    lines.push("-".repeat(col+44));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
     });
     lines.push("");
     lines.push("=================================");
@@ -1586,10 +1596,10 @@ function exportIstoric_silent(){
     lines.push("=================================");
     lines.push("");
     const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
-    lines.push("-".repeat(col+31));
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
+    lines.push("-".repeat(col+44));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
     });
     lines.push("");
     lines.push("=================================");
@@ -1669,10 +1679,12 @@ function renderIstoric(){
     // Tabel victorii - sortat dupa punctaj desc, apoi loc1 desc ca tiebreaker
     const tbody = document.getElementById("victoriiBody");
     tbody.innerHTML = "";
+    const totalJocuri = ist.jocuri ? ist.jocuri.length : 0;
     const sorted = Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0) || b[1].loc1-a[1].loc1);
     sorted.forEach(([name, v])=>{
+        const jucate = (v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0);
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${name}</td><td>${v.loc1||0}</td><td>${v.loc2||0}</td><td>${v.loc3||0}</td><td>${v.loc4||0}</td><td style="color:#FFD700;font-weight:bold;">${v.punctaj||0}</td>`;
+        tr.innerHTML = `<td>${name}</td><td>${v.loc1||0}</td><td>${v.loc2||0}</td><td>${v.loc3||0}</td><td>${v.loc4||0}</td><td>${jucate}/${totalJocuri}</td><td style="color:#FFD700;font-weight:bold;">${v.punctaj||0}</td>`;
         tbody.appendChild(tr);
     });
 
@@ -1726,10 +1738,10 @@ function exportIstoric(){
     lines.push("");
 
     const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Pct",7));
-    lines.push("-".repeat(col+31));
+    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
+    lines.push("-".repeat(col+44));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
     });
 
     lines.push("");
@@ -1850,14 +1862,16 @@ function parseTxtIstoric(text){
 
             if(mode==="victorii" && line.trim() && !line.startsWith("=")){
                 const parts = line.trim().split(/\s+/);
-                if(parts.length>=5){
-                    const name = parts[0];
-                    const hasPct = parts.length >= 6;
-                    const loc1 = parseInt(parts[parts.length - (hasPct?5:4)])||0;
-                    const loc2 = parseInt(parts[parts.length - (hasPct?4:3)])||0;
-                    const loc3 = parseInt(parts[parts.length - (hasPct?3:2)])||0;
-                    const loc4 = parseInt(parts[parts.length - (hasPct?2:1)])||0;
-                    const punctaj = hasPct ? (parseInt(parts[parts.length-1])||0) : 0;
+                // Filtrare coloana Jucate/Total (contine /)
+                const filteredParts = parts.filter(p => !p.includes('/'));
+                if(filteredParts.length>=5){
+                    const name = filteredParts[0];
+                    const hasPct = filteredParts.length >= 6;
+                    const loc1 = parseInt(filteredParts[filteredParts.length - (hasPct?5:4)])||0;
+                    const loc2 = parseInt(filteredParts[filteredParts.length - (hasPct?4:3)])||0;
+                    const loc3 = parseInt(filteredParts[filteredParts.length - (hasPct?3:2)])||0;
+                    const loc4 = parseInt(filteredParts[filteredParts.length - (hasPct?2:1)])||0;
+                    const punctaj = hasPct ? (parseInt(filteredParts[filteredParts.length-1])||0) : 0;
                     if(name && !isNaN(loc1)) ist.victorii[name]={loc1,loc2,loc3,loc4,punctaj};
                 }
             }
