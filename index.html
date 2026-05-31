@@ -493,6 +493,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
     setTimeout(function(){
         clearInterval(iv);
+        splash.style.transition='opacity 1s ease';
         splash.style.opacity='0';
 
         setTimeout(function(){
@@ -500,9 +501,9 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
             document.documentElement.style.overflowX='';
             document.documentElement.style.overflowY='';
             document.body && (document.body.style.overflow='');
-        },400);
+        },1000);
 
-    },1000);
+    },2000);
 
 })();
 </script>
