@@ -1273,7 +1273,6 @@ function buildWinnerHTML(scores, names, numPlayers){
 }
 
 function showWinner(scores, names, numPlayers){
-    window._lastWinnerCtx = {scores, names, numPlayers};
     window._prelungireActiva = false;
 
     addJocToIstoric(scores, names, numPlayers);
@@ -2069,11 +2068,6 @@ function parseTxtIstoric(text){
     } catch(err){ return null; }
 }
 
-function saveResultTxt(){
-    // Pastrat pentru compatibilitate - acum redirectam catre export complet
-    exportIstoric();
-}
-
 function findTies(scores){
     const counts={};
     scores.forEach((s,i)=>{ counts[s]=(counts[s]||[]);counts[s].push(i); });
@@ -2093,6 +2087,7 @@ let tbRows=[];
 function startTiebreaker(){
     document.getElementById("tieModal").classList.add("hidden");
     buildTiebreaker();
+    history.pushState({modal:'tiebreaker'}, '');
     document.getElementById("tiebreakerOverlay").classList.remove("hidden");
 }
 
@@ -2440,6 +2435,15 @@ function resetGame(){
     document.querySelectorAll(".player-games span").forEach(el=>el.classList.remove("active"));
     tieChecked=false;
     tbEndTriggered=false;
+    window._gameComplete=false;
+    window._finalizareProcesata=false;
+    // Reseteaza afisarea locurilor
+    for(let i=0;i<4;i++){
+        const el=document.getElementById("loc"+i);
+        if(el) el.textContent="";
+        const tbloc=document.getElementById("tbloc"+i);
+        if(tbloc) tbloc.textContent="";
+    }
     document.getElementById("tiebreakerOverlay").classList.add("hidden");
     document.getElementById("tieModal").classList.add("hidden");
     document.getElementById("winnerModal").classList.add("hidden");
@@ -2587,6 +2591,7 @@ window.addEventListener('popstate', function(){
         {id:'winnerModal',     close: ()=>document.getElementById('winnerModal').classList.add('hidden')},
         {id:'campionatModal',  close: ()=>document.getElementById('campionatModal').classList.add('hidden')},
         {id:'tieModal',        close: ()=>document.getElementById('tieModal').classList.add('hidden')},
+        {id:'tiebreakerOverlay', close: ()=>document.getElementById('tiebreakerOverlay').classList.add('hidden')},
         {id:'confirmModal',    close: ()=>document.getElementById('confirmModal').classList.add('hidden')},
         {id:'confirmResetModal', close: ()=>document.getElementById('confirmResetModal').classList.add('hidden')},
         {id:'jocCompletAlertModal', close: ()=>document.getElementById('jocCompletAlertModal').classList.add('hidden')},
