@@ -842,8 +842,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         <h1>🏆</h1>
         <p id="winnerMsg"></p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-            <button onclick="saveResultTxt()" style="background:#4af;color:#000;">💾 Salvează</button>
-            <button onclick="closeWinner()">Joc nou</button>
+            <button onclick="okWinner()" style="background:#00aa55;color:#fff;padding:10px 30px;font-size:16px;">OK</button>
         </div>
     </div>
 </div>
@@ -1049,6 +1048,9 @@ function calc(){
 let tieChecked=false;
 
 function finalizeazaJoc(){
+    if(window._finalizareProcesata) return;
+    window._finalizareProcesata = true;
+    setTimeout(()=>{ window._finalizareProcesata = false; }, 3000);
     const p4 = document.getElementById("name3").value.trim() !== "";
     const numPlayers = p4 ? 4 : 3;
     const targetTotal = p4 ? -72 : -87;
@@ -1123,6 +1125,64 @@ function checkGameEnd(cols,grand){
 
 const BONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 24" width="36" height="14" style="vertical-align:middle;margin:0 2px;filter:drop-shadow(0 0 2px rgba(255,255,255,0.4))"><g fill="#ccc"><circle cx="7" cy="6" r="5"/><circle cx="7" cy="18" r="5"/><circle cx="57" cy="6" r="5"/><circle cx="57" cy="18" r="5"/><rect x="10" y="9" width="44" height="6" rx="3"/></g></svg>`;
 
+function exportJocTxtContent(scores, tip="finalizat"){
+    const names = [
+        document.getElementById("name0")?.value||"P1",
+        document.getElementById("name1")?.value||"P2",
+        document.getElementById("name2")?.value||"P3",
+        document.getElementById("name3")?.value||"P4"
+    ];
+    const p4 = document.getElementById("name3")?.value.trim()!=="";
+    const numPlayers = p4 ? 4 : 3;
+    const NW = 9, NW2 = 5, GAP = 3;
+    const pL = (s,n)=>String(s).padEnd(n," ");
+    const pR = (s,n)=>String(s).padStart(n," ");
+    const colW = 1 + NW2 + GAP;
+    const sep = "-".repeat(NW + colW*numPlayers);
+    let lines = [];
+    const playersSorted = scores.slice(0,numPlayers).map((s,i)=>({s,i,name:names[i]||("P"+(i+1))}));
+    playersSorted.sort((a,b)=>b.s-a.s);
+    const medals = ["🏆","🥈","🥉","🦴"];
+    lines.push(playersSorted.map((p,idx)=>`${medals[idx]} ${p.name} (${p.s})`).join("   "));
+    lines.push("");
+    lines.push(sep);
+    lines.push(pL("",NW) + names.slice(0,numPlayers).map(n=>pL(n, colW)).join(""));
+    lines.push(sep);
+    games.forEach(g=>{
+        lines.push(pL(g.name, NW));
+        for(let i=0;i<4;i++){
+            if(numPlayers===3 && i===3) continue;
+            const rowIndex = games.indexOf(g)*4 + i;
+            const row = rows[rowIndex];
+            if(!row) continue;
+            const checks = row.querySelectorAll('input[type="checkbox"]');
+            const inputs = row.querySelectorAll('input[type="number"]');
+            let line = pL(`  ${g.name}${i+1}`, NW);
+            for(let p=0;p<numPlayers;p++){
+                const checked = checks[p]?.checked ? "☑" : "☐";
+                const raw = inputs[p]?.value;
+                const num = raw!=="" && raw!==undefined ? parseInt(raw)||0 : 0;
+                line += checked + pR(num, NW2) + " ".repeat(GAP);
+            }
+            lines.push(line);
+        }
+        lines.push("");
+    });
+    lines.push(sep);
+    return lines.join("\n");
+}
+
+function exportJocTxt(scores, tip="finalizat"){
+    const now = new Date();
+    const fname = `joc_${tip}_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,"0")}_${String(now.getDate()).padStart(2,"0")}_${String(now.getHours()).padStart(2,"0")}-${String(now.getMinutes()).padStart(2,"0")}.txt`;
+    const blob = new Blob([exportJocTxtContent(scores, tip)], {type:"text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    return fname;
+}
+
 function buildWinnerHTML(scores, names, numPlayers){
     const players = scores.slice(0, numPlayers).map((s,i)=>({s,i}));
     players.sort((a,b)=>b.s-a.s);
@@ -1144,12 +1204,33 @@ function buildWinnerHTML(scores, names, numPlayers){
 function showWinner(scores, names, numPlayers){
     window._lastWinnerCtx = {scores, names, numPlayers};
     window._prelungireActiva = false;
+
     addJocToIstoric(scores, names, numPlayers);
-    // Daca campionatul a fost detectat, addJocToIstoric a deschis campionat modal - nu mai afisa winner
+
+    // Daca campionatul s-a terminat, exportul se face in showCampionatModal
     if(!document.getElementById("campionatModal").classList.contains("hidden")) return;
-    // Daca suntem in prelungire, nu afisa winnerModal
     if(window._prelungireActiva) return;
-    document.getElementById("winnerMsg").innerHTML = buildWinnerHTML(scores, names, numPlayers);
+
+    // Un singur fisier combinat - evita problema Android cu multiple downloads
+    const now2 = new Date();
+    const fn2 = [now2.getFullYear(),String(now2.getMonth()+1).padStart(2,"0"),String(now2.getDate()).padStart(2,"0"),String(now2.getHours()).padStart(2,"0"),String(now2.getMinutes()).padStart(2,"0"),String(now2.getSeconds()).padStart(2,"0")].join("_");
+    const fname = `rentz_joc_${fn2}.txt`;
+    const combined = exportJocTxtContent(scores, "finalizat") + "\n\n" + "=".repeat(40) + "\n\n" + exportIstoricContent();
+    const blob = new Blob([combined], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Joc nou automat
+    resetGame();
+
+    // Afiseaza mesajele
+    document.getElementById("winnerMsg").innerHTML =
+        buildWinnerHTML(scores, names, numPlayers) +
+        `<br><br><span style="font-size:12px;color:#aaa;display:block;">💾 Salvat în<br><em>${fname}</em></span>`;
     document.getElementById("winnerModal").classList.remove("hidden");
 }
 
@@ -1486,10 +1567,15 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
         extraMsg = `<br><span style="font-size:12px;color:#ff9900;">⚡ Departajat după ${criteriu}</span>`;
     }
 
+    // Export cu numele corect pentru campionat
+    const lastCtx = window._lastWinnerCtx;
+    const fname = lastCtx ? exportJocTxt(lastCtx.scores, "campionat") : (window._lastJocFname||"");
+    window._lastJocFname = fname;
+
     document.getElementById("campionatIcon").textContent = "🥇";
     window._campionatCriteriu = ist._prelungire ? "prelungire" : (criteriu || "");
     document.getElementById("campionatMsg").innerHTML =
-        `🥇 <strong style="color:#FFD700;font-size:20px;">${numeWinner}</strong><br>a câștigat campionatul<br>cu <strong>${punctajWinner}</strong> puncte!${extraMsg}<br><br><span style="font-size:13px;color:#aaa;">${rezumat}</span>`;
+        `🥇 <strong style="color:#FFD700;font-size:20px;">${numeWinner}</strong><br>a câștigat campionatul<br>cu <strong>${punctajWinner}</strong> puncte!${extraMsg}<br><br><span style="font-size:13px;color:#aaa;">${rezumat}</span><br><br><span style="font-size:12px;color:#aaa;">💾 Joc salvat în<br><em>${fname}</em></span>`;
     document.getElementById("campionatMustSave").style.display = "";
     document.getElementById("campionatBtnSalveaza").style.display = "";
     document.getElementById("campionatBtnContinua").style.display = "none";
@@ -1525,11 +1611,11 @@ function exportCampionatSiReseteaza(){
     lines.push("");
     lines.push("Clasament general (campionat încheiat):");
     lines.push("");
-    const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
-    lines.push("-".repeat(col+44));
+    const col = 10;
+    lines.push(padR("Jucator",col) + padL("Loc1",5) + padL("Loc2",5) + padL("Loc3",5) + padL("Loc4",5) + padL("Jucate/Total",10) + padL("Pct",6));
+    lines.push("-".repeat(col+31));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),5) + padL(String(v.loc2||0),5) + padL(String(v.loc3||0),5) + padL(String(v.loc4||0),5) + padL(jucateEx+"/"+totEx,10) + padL(String(v.punctaj||0),6));
     });
     lines.push("");
     lines.push("=================================");
@@ -1541,7 +1627,7 @@ function exportCampionatSiReseteaza(){
         lines.push("  (niciun campionat anterior)");
     } else {
         Object.entries(campIst).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
-            lines.push(padR(name,14) + padL(String(nr),6));
+            lines.push(padR(name,10) + padL(String(nr),6));
         });
     }
     lines.push("");
@@ -1552,7 +1638,7 @@ function exportCampionatSiReseteaza(){
     ist.jocuri.forEach(joc=>{
         lines.push(`[${joc.data} ${joc.ora}]`);
         joc.rezultat.forEach(r=>{
-            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,10)} ${String(r.scor).padStart(5)} pct`);
         });
         lines.push("");
     });
@@ -1595,11 +1681,11 @@ function exportIstoric_silent(){
     lines.push(`  Punctaje joc 3: Loc1=${pct3s[0]}, Loc2=${pct3s[1]}, Loc3=${pct3s[2]}`);
     lines.push("=================================");
     lines.push("");
-    const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
-    lines.push("-".repeat(col+44));
+    const col = 10;
+    lines.push(padR("Jucator",col) + padL("Loc1",5) + padL("Loc2",5) + padL("Loc3",5) + padL("Loc4",5) + padL("Jucate/Total",10) + padL("Pct",6));
+    lines.push("-".repeat(col+31));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),5) + padL(String(v.loc2||0),5) + padL(String(v.loc3||0),5) + padL(String(v.loc4||0),5) + padL(jucateEx+"/"+totEx,10) + padL(String(v.punctaj||0),6));
     });
     lines.push("");
     lines.push("=================================");
@@ -1622,7 +1708,7 @@ function exportIstoric_silent(){
     ist.jocuri.forEach(joc=>{
         lines.push(`[${joc.data} ${joc.ora}]`);
         joc.rezultat.forEach(r=>{
-            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,10)} ${String(r.scor).padStart(5)} pct`);
         });
         lines.push("");
     });
@@ -1723,11 +1809,10 @@ function renderIstoric(){
     });
 }
 
-function exportIstoric(){
+function exportIstoricContent(){
     const ist = loadIstoric();
     const locEmoji = ["🏆","🥈","🥉","🦴"];
     let lines = [];
-
     lines.push("=================================");
     lines.push("  RENTZ - Clasament general");
     lines.push(`  Prag campionat: ${getPragCampionat()} puncte`);
@@ -1736,61 +1821,57 @@ function exportIstoric(){
     lines.push(`  Punctaje joc 3: Loc1=${pct3e2[0]}, Loc2=${pct3e2[1]}, Loc3=${pct3e2[2]}`);
     lines.push("=================================");
     lines.push("");
-
-    const col = 14;
-    lines.push(padR("Jucator",col) + padL("Loc1",6) + padL("Loc2",6) + padL("Loc3",6) + padL("Loc4",6) + padL("Jucate/Total",13) + padL("Pct",7));
-    lines.push("-".repeat(col+44));
+    const col = 10;
+    lines.push(padR("Jucator",col) + padL("Loc1",5) + padL("Loc2",5) + padL("Loc3",5) + padL("Loc4",5) + padL("Jucate/Total",10) + padL("Pct",6));
+    lines.push("-".repeat(col+31));
     Object.entries(ist.victorii).sort((a,b)=>(b[1].punctaj||0)-(a[1].punctaj||0)||b[1].loc1-a[1].loc1).forEach(([name,v])=>{
-        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0; lines.push(padR(name,col) + padL(String(v.loc1||0),6) + padL(String(v.loc2||0),6) + padL(String(v.loc3||0),6) + padL(String(v.loc4||0),6) + padL(jucateEx+"/"+totEx,13) + padL(String(v.punctaj||0),7));
+        const jucateEx=(v.loc1||0)+(v.loc2||0)+(v.loc3||0)+(v.loc4||0); const totEx=ist.jocuri?ist.jocuri.length:0;
+        lines.push(padR(name,col) + padL(String(v.loc1||0),5) + padL(String(v.loc2||0),5) + padL(String(v.loc3||0),5) + padL(String(v.loc4||0),5) + padL(jucateEx+"/"+totEx,10) + padL(String(v.punctaj||0),6));
     });
-
     lines.push("");
     lines.push("=================================");
     lines.push("  Campionate castigate");
     lines.push("=================================");
     lines.push("");
-    const camp = ist.campionate||{};
-    if(Object.keys(camp).length===0){
+    const campIst = ist.campionate||{};
+    if(Object.keys(campIst).length===0){
         lines.push("  (niciun campionat incheiat)");
     } else {
-        Object.entries(camp).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
+        Object.entries(campIst).sort((a,b)=>b[1]-a[1]).forEach(([name,nr])=>{
             lines.push(padR(name,col) + padL(String(nr),6));
         });
     }
-
     lines.push("");
     lines.push("=================================");
     lines.push("  Jocuri jucate");
     lines.push("=================================");
     lines.push("");
-
-    ist.jocuri.forEach(joc=>{
-        lines.push(`[${joc.data} ${joc.ora}]`);
-        joc.rezultat.forEach(r=>{
-            lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,12)} ${String(r.scor).padStart(5)} pct`);
+    if(!ist.jocuri||ist.jocuri.length===0){
+        lines.push("  (niciun joc inregistrat)");
+    } else {
+        ist.jocuri.forEach(joc=>{
+            lines.push(`[${joc.data||""} ${joc.ora||""}]`);
+            (joc.rezultat||[]).forEach(r=>{
+                lines.push(`  ${locEmoji[r.loc-1]} ${padR(r.name,10)} ${String(r.scor).padStart(5)} pct`);
+            });
+            lines.push("");
         });
-        lines.push("");
-    });
+    }
+    return lines.join("\n");
+}
 
-    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+function exportIstoric(){
+    const now = new Date();
+    const fn = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0"),String(now.getHours()).padStart(2,"0"),String(now.getMinutes()).padStart(2,"0"),String(now.getSeconds()).padStart(2,"0")].join("_");
+    const fname = `rentz_${fn}.txt`;
+    const blob = new Blob([exportIstoricContent()], {type:"text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    const now = new Date();
-    const fn = [
-        now.getFullYear(),
-        String(now.getMonth()+1).padStart(2,"0"),
-        String(now.getDate()).padStart(2,"0"),
-        String(now.getHours()).padStart(2,"0"),
-        String(now.getMinutes()).padStart(2,"0"),
-        String(now.getSeconds()).padStart(2,"0")
-    ].join("_");
-    a.download = `rentz_${fn}.txt`;
-    document.body.appendChild(a);
-    a.click();
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showAlert(`Fișier salvat:\nrentz_${fn}.txt\n\n⚠️ Exportul s-a făcut în folderul download!`, "💾");
+    return fname;
 }
 
 function padR(str, len){ return (str+"").padEnd(len," "); }
@@ -2107,6 +2188,10 @@ function showTbJocIncomplet(){
     msg.style.display = "inline";
     clearTimeout(window._tbIncompletTimer);
     window._tbIncompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
+}
+
+function okWinner(){
+    document.getElementById("winnerModal").classList.add("hidden");
 }
 
 function closeWinner(){
