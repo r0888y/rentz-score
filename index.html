@@ -998,28 +998,30 @@ function validateAllPlayerNames(){
     for(let i=0;i<4;i++){
         const inp = document.getElementById("name"+i);
         const val = inp.value.trim();
-        // Nu valida inputul P4 daca e gol (jucator optional)
         if(i === 3 && val === "") {
             inp.style.borderColor = "";
             inp.style.color = "#000";
+            inp.style.fontWeight = "";
             inp.title = "";
             continue;
         }
         if(val === "") {
             inp.style.borderColor = "";
             inp.style.color = "#000";
+            inp.style.fontWeight = "";
             inp.title = "";
             continue;
         }
         const exists = _nameExistsInIstoric(val);
         if(!exists){
-            inp.style.borderColor = "#cc0000";
-            inp.style.color = "#cc0000";
+            inp.style.borderColor = "#FFC300";
+            inp.style.color = "#CC8800";
             inp.title = "Nume nou – nu există în istoric";
         } else {
-            inp.style.borderColor = "";
+            inp.style.borderColor = "#2ECC40";
             inp.style.color = "#000";
-            inp.title = "";
+            inp.style.fontWeight = "bold";
+            inp.title = "Jucător găsit în istoric";
         }
     }
 }
