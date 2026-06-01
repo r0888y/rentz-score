@@ -560,7 +560,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <div id="partidaFinalizataNefinalizataModal" class="hidden" style="position:fixed;inset:0;z-index:38000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;">
     <div class="confirm-box" style="max-width:320px;">
         <h2 style="color:#FFD700;">⚠️ Atenție!</h2>
-        <p style="line-height:1.6;">Partida este finalizată și nu ai dat finalizare!<br><br>Dacă totuși nu vrei să resetezi partida fără să o înregistrezi, debifează un joc, apoi apasă <strong>Reset</strong>!</p>
+        <p style="line-height:1.6;">Partida este finalizată și nu ai dat finalizare!<br><br>Dacă totuși vrei să resetezi partida fără să o înregistrezi, debifează un joc, apoi apasă <strong>Reset</strong>!</p>
         <div class="confirm-btns">
             <button onclick="document.getElementById('partidaFinalizataNefinalizataModal').classList.add('hidden')">OK</button>
         </div>
@@ -570,7 +570,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <!-- MODAL ALERTA JOC COMPLET -->
 <div id="jocCompletAlertModal" class="hidden">
     <div class="confirm-box">
-        <h2>🏁 Joc complet!</h2>
+        <h2>🏁 Partidă completă!</h2>
         <p>Pentru a înregistra partida, apasă butonul <strong>Finalizează</strong>, din bara de sus.</p>
         <div class="confirm-btns">
             <button onclick="document.getElementById('jocCompletAlertModal').classList.add('hidden')">OK</button>
@@ -2568,12 +2568,12 @@ function _isPartidaFinalizata(){
     const p4 = document.getElementById("name3").value.trim() !== "";
     const numPlayers = p4 ? 4 : 3;
     const targetTotal = p4 ? -72 : -87;
-    // Verifica totalul
+    // Verifica totalul din elementele top (la fel ca finalizeazaJoc)
     let grand = 0;
     for(let i=0;i<numPlayers;i++) grand += parseInt(document.getElementById("top"+i).textContent)||0;
     if(grand !== targetTotal) return false;
-    // Verifica bifele
-    const rows = document.querySelectorAll('#gameRows tr');
+    // Verifica bifele - doar randurile cu inputuri numerice
+    const rows = Array.from(document.querySelectorAll('#gameRows tr')).filter(r=>r.querySelector('input[type="number"]'));
     for(let gi=0;gi<6;gi++){
         for(let p=0;p<numPlayers;p++){
             let hasCheck=false;
