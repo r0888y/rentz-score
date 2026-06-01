@@ -1161,7 +1161,7 @@ function calc(){
             el.id="loc"+i;
             el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
             const topEl=document.getElementById("top"+i);
-            topEl.parentNode.insertBefore(el, topEl.nextSibling);
+            topEl.parentNode.insertBefore(el, topEl);
         }
         el.textContent=romani[loc-1]+diffStr;
     }
@@ -2298,7 +2298,7 @@ function tbCalc(){
             el.id="tbloc"+i;
             el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
             const valEl=document.getElementById("tbVal"+i);
-            if(valEl) valEl.parentNode.insertBefore(el, valEl.nextSibling);
+            if(valEl) valEl.parentNode.insertBefore(el, valEl);
         }
         el.textContent=romaniTb[loc-1]+diffStr;
     }
