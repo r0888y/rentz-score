@@ -110,6 +110,8 @@ input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;fo
 input[type="checkbox"]{width:16px;height:16px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid #FFC300;border-radius:3px;background:#1c1c20;cursor:pointer;outline:none;}
 input[type="checkbox"]:checked{background:#00ff95;border-color:#00ff95;box-shadow:0 0 5px rgba(0,255,149,0.6);}
 input[type="checkbox"]:checked::after{content:"✓";display:block;color:#000;font-size:11px;font-weight:bold;text-align:center;line-height:14px;}
+input[type="checkbox"][data-conflict="1"]{background:#ff4040 !important;border-color:#ff4040 !important;box-shadow:0 0 5px rgba(255,64,64,0.6) !important;}
+input[type="checkbox"][data-conflict="1"]::after{content:"✕" !important;color:#fff !important;font-size:11px;font-weight:bold;display:block;text-align:center;line-height:14px;}
 .total{background:#1b1b1b;color:#00ff95;font-weight:bold;}
 .row-total{text-align:right;padding-right:4px;width:40px;font-size:18px;font-weight:bold;}
 #col0,#col1,#col2,#col3,#grandTotal{font-size:18px;font-weight:bold;}
@@ -998,29 +1000,26 @@ function validateAllPlayerNames(){
     for(let i=0;i<4;i++){
         const inp = document.getElementById("name"+i);
         const val = inp.value.trim();
-        if(i === 3 && val === "") {
+        if((i === 3 && val === "") || val === "") {
             inp.style.borderColor = "";
             inp.style.color = "#000";
             inp.style.fontWeight = "";
-            inp.title = "";
-            continue;
-        }
-        if(val === "") {
-            inp.style.borderColor = "";
-            inp.style.color = "#000";
-            inp.style.fontWeight = "";
+            inp.style.background = "#f5f5f5";
             inp.title = "";
             continue;
         }
         const exists = _nameExistsInIstoric(val);
         if(!exists){
-            inp.style.borderColor = "#FFC300";
-            inp.style.color = "#CC8800";
+            inp.style.borderColor = "#000";
+            inp.style.color = "#fff";
+            inp.style.fontWeight = "bold";
+            inp.style.background = "#000";
             inp.title = "Nume nou – nu există în istoric";
         } else {
             inp.style.borderColor = "#2ECC40";
             inp.style.color = "#000";
             inp.style.fontWeight = "bold";
+            inp.style.background = "#fff";
             inp.title = "Jucător găsit în istoric";
         }
     }
@@ -1139,7 +1138,11 @@ function calc(){
         checks.forEach((c,i)=>{
             const group=Math.floor(rowIndex/4);
             const colInvalid=groupChecks[group]?.[i]>1;
-            c.style.outline=c.checked&&(checkedCount!==1||colInvalid)?"2px solid #ff4040":"none";
+            const conflict=c.checked&&(checkedCount!==1||colInvalid);
+            c.style.background=conflict?"#ff4040":c.checked?"#00ff95":"#1c1c20";
+            c.style.borderColor=conflict?"#ff4040":c.checked?"#00ff95":"#FFC300";
+            // X sau bifa
+            c.dataset.conflict=conflict?"1":"0";
         });
     });
     for(let i=0;i<4;i++){
