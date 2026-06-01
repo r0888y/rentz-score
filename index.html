@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rentz Score">
-<meta name="theme-color" content="#0b0b0b">
+<meta name="theme-color" content="#1c1c20">
 <link rel="manifest" id="pwaManifest">
 <link rel="apple-touch-icon" id="pwaIcon">
 <script>
@@ -27,8 +27,8 @@
         description: "Aplicație de scor pentru Rentz",
         start_url: "./",
         display: "standalone",
-        background_color: "#0b0b0b",
-        theme_color: "#0b0b0b",
+        background_color: "#1c1c20",
+        theme_color: "#1c1c20",
         orientation: "portrait",
         icons: [
             { src: svgB64, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
@@ -54,14 +54,14 @@ self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(()=>new
 </script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0b0b0b;color:#fff;font-family:Arial;font-size:16px;}
+body{margin:0;background:#1c1c20;color:#fff;font-family:Arial;font-size:16px;}
 html{height:100dvh;width:100%;}
 
-.header{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:6px;background:#0b0b0b;}
+.header{position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:6px;background:#1c1c20;}
 h2{margin:0;font-size:18px}
 button{background:#00ff95;border:0;padding:5px 8px;font-size:14px;border-radius:6px;font-weight:bold;cursor:pointer;}
 
-.top-total{position:sticky;top:42px;z-index:90;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:#0b0b0b;}
+.top-total{position:sticky;top:42px;z-index:90;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:#1c1c20;}
 .player-box {
   background: radial-gradient(circle at center, #020617 0%, #00416A 66%, #00D2FF 100%);
   padding: 0px;
@@ -87,7 +87,7 @@ button{background:#00ff95;border:0;padding:5px 8px;font-size:14px;border-radius:
 .player-name::placeholder{font-family:Georgia,serif;font-size:16px;color:#777;}
 .player-score{margin-top:1px;font-size:42px;color:#ffffff;font-weight:bold;line-height:1.1;}
 
-#stickyPlayers tr td{position:sticky;top:0;z-index:10;padding:4px 2px;font-size:14px;font-family:Georgia,serif;font-weight:700;color:#00FFFF;text-align:left;border:none;border-bottom:2px solid #00FFFF;background:#0b0b0b;white-space:nowrap;overflow:visible;text-overflow:clip;}
+#stickyPlayers tr td{position:sticky;top:0;z-index:10;padding:4px 2px;font-size:14px;font-family:Georgia,serif;font-weight:700;color:#00FFFF;text-align:left;border:none;border-bottom:2px solid #00FFFF;background:#1c1c20;white-space:nowrap;overflow:visible;text-overflow:clip;}
 #stickyPlayers tr td:first-child{font-size:0;color:transparent;}
 
 .wrapper{height:calc(100vh - 140px);overflow:auto;position:relative;scrollbar-width:none;}
@@ -129,14 +129,14 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 /* ===== TIEBREAKER OVERLAY ===== */
 #tiebreakerOverlay{
     position:fixed;inset:0;z-index:10000;
-    background:#0b0b0b;
+    background:#1c1c20;
     display:flex;flex-direction:column;
     overflow:hidden;
 }
 #tiebreakerOverlay.hidden{display:none!important;}
 
 .tb-header{
-    background:#0b0b0b;
+    background:#1c1c20;
     padding:8px 10px;
     display:flex;
     justify-content:space-between;
@@ -152,7 +152,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     grid-template-columns:repeat(4,1fr);
     gap:4px;
     padding:6px;
-    background:#0b0b0b;
+    background:#1c1c20;
     flex-shrink:0;
 }
 .tb-score-box{
@@ -248,13 +248,13 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 /* ===== ISTORIC OVERLAY ===== */
 #istoricOverlay{
     position:fixed;inset:0;z-index:25000;
-    background:#0b0b0b;
+    background:#1c1c20;
     display:flex;flex-direction:column;
     overflow:hidden;
 }
 #istoricOverlay.hidden{display:none!important;}
 .ist-header{
-    background:#0b0b0b;
+    background:#1c1c20;
     padding:8px 10px;
     display:flex;justify-content:space-between;align-items:center;
     border-bottom:2px solid #FFD700;
@@ -324,7 +324,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <body>
 
 <!-- SPLASH SCREEN -->
-<div id="splashScreen" style="position:fixed;inset:0;z-index:99999;background:#0b0b0b;overflow:hidden;opacity:1;transition:opacity 0.3s ease;">
+<div id="splashScreen" style="position:fixed;inset:0;z-index:99999;background:#1c1c20;overflow:hidden;opacity:1;transition:opacity 0.3s ease;">
 
     <div id="splashBg"></div>
 
@@ -341,7 +341,6 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         z-index:99998;
     "></div>
 
-    <!-- loading EXACT cum era -->
     <div id="loadingTxt" style="
     position:absolute;
     top:66%;
@@ -358,7 +357,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     z-index:100000;
     pointer-events:none;
     ">
-        <span>loading</span><span id="loadingDots">...</span>
+    loading.
     </div>
 
 </div>
@@ -374,61 +373,56 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         return Math.random()*(max-min)+min;
     }
 
-    // degrade random la refresh
+    // Seturi de degradeuri - se schimba la fiecare refresh
     const colorSets = [
-
-        // roșu → portocaliu → galben
+        // rosu → portocaliu → galben (original)
         function(t){
-            let r=255,g=0,b=0;
+            let r=255, g=0, b=0;
             if(t<0.5){ g=Math.floor(t/0.5*120); }
             else { g=Math.floor(120+(t-0.5)/0.5*135); }
             return `rgb(${r},${g},${b})`;
         },
-
-        // roșu → mov → albastru
+        // rosu → mov → albastru
         function(t){
-            let r=Math.floor(255*(1-t)),g=0,b=Math.floor(255*t);
+            let r=Math.floor(255*(1-t)), g=0, b=Math.floor(255*t);
             let extra=Math.floor(Math.sin(t*Math.PI)*80);
             return `rgb(${r+extra},${extra/2},${b})`;
         },
-
-        // roșu → roz → alb
+        // rosu → roz → alb
         function(t){
             let base=Math.floor(t*200);
             return `rgb(255,${base},${base})`;
         },
-
-        // verde → galben → portocaliu
+        // verde inchis → galben → portocaliu
         function(t){
-            let r=Math.floor(t*255),g=Math.floor(150+t*105),b=0;
+            let r=Math.floor(t*255), g=Math.floor(150+t*105), b=0;
             return `rgb(${r},${g},${b})`;
         },
-
-        // albastru → cyan → alb
+        // albastru inchis → cyan → alb
         function(t){
             let base=Math.floor(t*255);
             return `rgb(${base},${base},255)`;
         },
-
-        // auriu → arămiu
+        // auriu → aramiu → rosu inchis
         function(t){
-            let r=255,g=Math.floor(215*(1-t)),b=0;
+            let r=255, g=Math.floor(215*(1-t)), b=0;
             return `rgb(${r},${g},${b})`;
         }
     ];
 
-    const setIndex=Math.floor(Math.random()*colorSets.length);
-    const getColor=colorSets[setIndex];
+    const setIndex = Math.floor(Math.random() * colorSets.length);
+    const getColor = colorSets[setIndex];
 
-    const COUNT=88;
-    const placed=[];
-    const minDist=7;
+    const COUNT = 88;
 
-    function tooClose(x,y){
+    const placed = [];
+    const minDist = 7;
+
+    function tooClose(x, y){
         for(const p of placed){
-            const dx=p.x-x;
-            const dy=p.y-y;
-            if(Math.sqrt(dx*dx+dy*dy)<minDist){
+            const dx = p.x - x;
+            const dy = p.y - y;
+            if(Math.sqrt(dx*dx + dy*dy) < minDist){
                 return true;
             }
         }
@@ -437,96 +431,77 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
     for(let i=0;i<COUNT;i++){
 
-        let x,y,tries=0;
+        let x, y, tries = 0;
 
-        do{
-            x=rand(0,100);
-            y=rand(0,100);
+        do {
+            x = rand(0,100);
+            y = rand(0,100);
             tries++;
-        }while(tooClose(x,y)&&tries<20);
+        } while(tooClose(x,y) && tries < 20);
 
         placed.push({x,y});
 
-        const d=document.createElement("div");
-        const sym=texts[i % texts.length];
+        const d = document.createElement("div");
 
-        d.textContent=sym;
+        d.textContent = texts[i % texts.length];
 
-        d.style.position="absolute";
-        d.style.fontFamily="'Arial Black',Arial";
-        d.style.fontWeight="900";
-        d.style.userSelect="none";
-        d.style.whiteSpace="nowrap";
-        d.style.opacity="0.77";
+        d.style.position = "absolute";
+        d.style.fontFamily = "'Arial Black', Arial";
+        d.style.fontWeight = "900";
+        d.style.userSelect = "none";
+        d.style.whiteSpace = "nowrap";
+        d.style.opacity = "0.82";
 
-        const t=y/100;
+        const t = y / 100;
+        const sym = texts[i % texts.length];
+        const size = rand(5, 24);
 
-        if(sym==="J♠"){
-            d.style.color="#000";
+        if(sym === "J\u2660"){
+            d.style.color = "#222222";
+            d.style.webkitTextStroke = "1.5px #ffffff";
+            d.style.textShadow = [
+                "-1px -2px 0 rgba(255,255,255,0.85)",
+                "-2px -3px 0 rgba(255,255,255,0.45)",
+                "1px 1px 0 rgba(0,0,0,0.9)",
+                "2px 3px 0 rgba(0,0,0,0.85)",
+                "3px 5px 0 rgba(0,0,0,0.7)",
+                "4px 7px 4px rgba(0,0,0,0.5)",
+                "5px 8px 8px rgba(0,0,0,0.3)",
+                "0 0 14px rgba(255,255,255,0.08)"
+            ].join(",");
+        } else if(sym === "K\u2665" || sym === "\u2666"){
+            d.style.color = "#dd0000";
+            d.style.webkitTextStroke = "1.5px #ff8888";
+            d.style.textShadow = [
+                "-1px -2px 0 rgba(255,160,160,0.9)",
+                "-2px -3px 0 rgba(255,100,100,0.5)",
+                "1px 1px 0 rgba(140,0,0,0.9)",
+                "2px 3px 0 rgba(100,0,0,0.85)",
+                "3px 5px 0 rgba(60,0,0,0.8)",
+                "4px 7px 4px rgba(0,0,0,0.55)",
+                "5px 8px 8px rgba(0,0,0,0.3)",
+                "0 0 16px rgba(220,0,0,0.2)"
+            ].join(",");
+        } else {
+            const col = getColor(t);
+            d.style.color = col;
+            d.style.webkitTextStroke = "1.5px rgba(255,255,255,0.5)";
+            d.style.textShadow = [
+                "-1px -2px 0 rgba(255,255,255,0.75)",
+                "-2px -3px 0 rgba(255,255,255,0.35)",
+                "1px 1px 0 rgba(0,0,0,0.7)",
+                "2px 3px 0 rgba(0,0,0,0.75)",
+                "3px 5px 0 rgba(0,0,0,0.6)",
+                "4px 7px 4px rgba(0,0,0,0.45)",
+                "5px 8px 8px rgba(0,0,0,0.25)",
+                "0 0 18px rgba(255,210,0,0.08)"
+            ].join(",");
         }
-        else if(sym==="K♥"||sym==="♦"){
-            d.style.color="#cc0000";
-        }
-        else{
-            d.style.color=getColor(t);
-        }
 
-        // 🔥 EFECT 3D pe toate cuvintele
-        d.style.textShadow=`
-    /* highlight sus */
-    0 1px 0 rgba(255,255,255,0.95),
-    0 2px 0 rgba(255,255,255,0.85),
-    0 3px 0 rgba(255,255,255,0.75),
-    0 4px 0 rgba(255,255,255,0.60),
-
-    /* corp 3D gros */
-    0 5px 0 rgba(0,0,0,0.15),
-    0 6px 0 rgba(0,0,0,0.22),
-    0 7px 0 rgba(0,0,0,0.30),
-    0 8px 0 rgba(0,0,0,0.38),
-    0 9px 0 rgba(0,0,0,0.46),
-    0 10px 0 rgba(0,0,0,0.54),
-    0 11px 0 rgba(0,0,0,0.62),
-    0 12px 0 rgba(0,0,0,0.70),
-
-    /* umbră adâncă */
-    0 14px 8px rgba(0,0,0,0.85),
-    0 20px 18px rgba(0,0,0,0.70),
-    0 28px 36px rgba(0,0,0,0.55)
-`;
-
-d.style.webkitTextStroke="2.5px rgba(255,255,255,0.9)";
-
-        d.style.webkitTextStroke="1px rgba(255,255,255,0.65)";
-
-        const size=rand(5,24);
-        d.style.fontSize=size+"vw";d.style.textShadow=`
-    /* highlight sus */
-    0 1px 0 rgba(255,255,255,0.95),
-    0 2px 0 rgba(255,255,255,0.85),
-    0 3px 0 rgba(255,255,255,0.75),
-    0 4px 0 rgba(255,255,255,0.60),
-
-    /* corp 3D gros */
-    0 5px 0 rgba(0,0,0,0.15),
-    0 6px 0 rgba(0,0,0,0.22),
-    0 7px 0 rgba(0,0,0,0.30),
-    0 8px 0 rgba(0,0,0,0.38),
-    0 9px 0 rgba(0,0,0,0.46),
-    0 10px 0 rgba(0,0,0,0.54),
-    0 11px 0 rgba(0,0,0,0.62),
-    0 12px 0 rgba(0,0,0,0.70),
-
-    /* umbră adâncă */
-    0 14px 8px rgba(0,0,0,0.85),
-    0 20px 18px rgba(0,0,0,0.70),
-    0 28px 36px rgba(0,0,0,0.55)
-`;
-
-d.style.webkitTextStroke="2.5px rgba(255,255,255,0.9)";
-
-        d.style.left=x+"%";
-        d.style.top=y+"%";
+        d.style.fontSize = size + "vw";
+        d.style.left = x + "%";
+        d.style.top = y + "%";
+        d.style.transform = "rotate(0deg)";
 
         splash.appendChild(d);
     }
@@ -535,40 +510,26 @@ d.style.webkitTextStroke="2.5px rgba(255,255,255,0.9)";
     document.documentElement.style.overflowY='hidden';
     document.body && (document.body.style.overflow='hidden');
 
-    // loading: doar punctele pulsează/sting
-    const dots=document.getElementById("loadingDots");
+    // Animatie puncte: apar unul cate unul (., .., ...) apoi dispar si reiau
+    var lt = document.getElementById('loadingTxt');
+    lt.textContent = 'loading';
+    var dotCount = 0;
+    var dotAppearing = true; // true = adaugam, false = stergem
 
-    let state=0;
-
-    const iv=setInterval(function(){
-
-        state=(state+1)%4;
-
-        dots.style.opacity="1";
-
-        if(state===0){
-            dots.textContent="...";
-            dots.style.opacity="1";
+    var iv = setInterval(function(){
+        if(dotAppearing){
+            dotCount++;
+            lt.textContent = 'loading' + '.'.repeat(dotCount);
+            if(dotCount >= 3) dotAppearing = false;
+        } else {
+            dotCount--;
+            lt.textContent = 'loading' + '.'.repeat(dotCount);
+            if(dotCount <= 0) dotAppearing = true;
         }
-        else if(state===1){
-            dots.textContent="...";
-            dots.style.opacity="0.65";
-        }
-        else if(state===2){
-            dots.textContent="...";
-            dots.style.opacity="0.3";
-        }
-        else{
-            dots.textContent="...";
-            dots.style.opacity="0";
-        }
-
-    },250);
+    }, 380);
 
     setTimeout(function(){
-
         clearInterval(iv);
-
         splash.style.transition='opacity 1s ease';
         splash.style.opacity='0';
 
@@ -579,7 +540,7 @@ d.style.webkitTextStroke="2.5px rgba(255,255,255,0.9)";
             document.body && (document.body.style.overflow='');
         },1000);
 
-    },2000);
+    },2800);
 
 })();
 </script>
@@ -997,6 +958,57 @@ function updateNames(){
         }
     }
     scheduleSave();
+    validateAllPlayerNames();
+}
+
+// Normalizare nume (identica cu cea din addJocToIstoric)
+function _normName(n){ n=(n||"").trim(); return n.charAt(0).toUpperCase()+n.slice(1).toLowerCase(); }
+
+function _nameExistsInIstoric(rawName){
+    if(!rawName || !rawName.trim()) return true; // gol = ok, nu marcam
+    const norm = _normName(rawName);
+    try {
+        const ist = loadIstoric();
+        // Cauta in victorii
+        if(ist.victorii && Object.keys(ist.victorii).some(n => n === norm)) return true;
+        // Cauta in jocuri (rezultate)
+        if(ist.jocuri){
+            for(const joc of ist.jocuri){
+                if(joc.rezultat && joc.rezultat.some(r => _normName(r.name) === norm)) return true;
+            }
+        }
+    } catch(e){}
+    return false;
+}
+
+function validateAllPlayerNames(){
+    for(let i=0;i<4;i++){
+        const inp = document.getElementById("name"+i);
+        const val = inp.value.trim();
+        // Nu valida inputul P4 daca e gol (jucator optional)
+        if(i === 3 && val === "") {
+            inp.style.borderColor = "";
+            inp.style.color = "#000";
+            inp.title = "";
+            continue;
+        }
+        if(val === "") {
+            inp.style.borderColor = "";
+            inp.style.color = "#000";
+            inp.title = "";
+            continue;
+        }
+        const exists = _nameExistsInIstoric(val);
+        if(!exists){
+            inp.style.borderColor = "#cc0000";
+            inp.style.color = "#cc0000";
+            inp.title = "Nume nou – nu există în istoric";
+        } else {
+            inp.style.borderColor = "";
+            inp.style.color = "#000";
+            inp.title = "";
+        }
+    }
 }
 
 function togglePlayer4(){
@@ -1210,6 +1222,7 @@ function finalizeazaJoc(){
     document.getElementById("tieMsg").innerHTML =
         `Jucătorii <strong>${tiedNames}</strong> sunt la egalitate.<br><br>Continuăm cu departajarea!`;
     document.getElementById("tieModal").classList.remove("hidden");
+    history.pushState({modal:"tieModal"}, "");
     window._tbContext = {scores:activeCols, names:names.slice(0,numPlayers), numPlayers, round:1, tiedIndices:ties};
 }
 
@@ -1239,6 +1252,7 @@ function checkGameEnd(cols,grand){
     }
     if(!window._gameComplete){
         document.getElementById("jocCompletAlertModal").classList.remove("hidden");
+        history.pushState({modal:"jocCompletAlert"}, "");
     }
     window._gameComplete=true;
 }
@@ -1378,6 +1392,7 @@ function showWinner(scores, names, numPlayers){
         buildWinnerHTML(scores, names, numPlayers) +
         `<br><br><span style="font-size:12px;color:#aaa;display:block;">💾 Salvat în<br><em>${fname}</em></span>`;
     document.getElementById("winnerModal").classList.remove("hidden");
+    history.pushState({modal:"winnerModal"}, "");
 }
 
 function showPrelungireModal(numeEgali){
@@ -1392,12 +1407,14 @@ function showPrelungireModal(numeEgali){
     document.getElementById("campionatBtnContinua").style.display = "";
     window._campionatWinner = null;
     document.getElementById("campionatModal").classList.remove("hidden");
+    history.pushState({modal:"campionatModal"}, "");
 }
 
 function showAlert(msg, icon){
     document.getElementById("alertIcon").textContent = icon || "ℹ️";
     document.getElementById("alertMsg").textContent = msg;
     document.getElementById("alertModal").classList.remove("hidden");
+    history.pushState({modal:"alert"}, "");
 }
 function closeAlert(){
     document.getElementById("alertModal").classList.add("hidden");
@@ -1749,6 +1766,7 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     document.getElementById("campionatBtnSalveaza").style.display = "";
     document.getElementById("campionatBtnContinua").style.display = "none";
     document.getElementById("campionatModal").classList.remove("hidden");
+    history.pushState({modal:"campionatModal"}, "");
 }
 
 function okCampionat(){
@@ -1879,6 +1897,7 @@ function exportIstoric_silent(){
 
 function resetIstoric(){
     document.getElementById("confirmResetModal").classList.remove("hidden");
+    history.pushState({modal:"confirmReset"}, "");
 }
 
 function executeResetIstoric(){
@@ -2311,6 +2330,7 @@ function checkTbEnd(tbCols,grand,numPlayers){
     }
     if(!window._tbComplete){
         document.getElementById("prelungireCompletaAlertModal").classList.remove("hidden");
+    history.pushState({modal:"prelungireAlert"}, "");
     }
     window._tbComplete = true;
 }
@@ -2352,6 +2372,7 @@ function finalizeazaJocTb(){
             document.getElementById("tieMsg").innerHTML =
                 "Jucătorii <strong>"+tiedNames+"</strong> sunt la egalitate.<br><br>Continuăm cu runda "+(ctx.round+1)+" de departajare!";
             document.getElementById("tieModal").classList.remove("hidden");
+            history.pushState({modal:"tieModal"}, "");
         },100);
     }
 }
@@ -2534,6 +2555,7 @@ function resetGame(){
 
 function newGame(){
     document.getElementById("confirmModal").classList.remove("hidden");
+    history.pushState({modal:"confirmModal"}, "");
 }
 
 // Persistent tiebreaker overlay listeners (attached once)
@@ -2657,30 +2679,101 @@ calc();
 _loadingFromStorage=false;
 updateGameHighlights();
 updateWatermarkSize();
+validateAllPlayerNames();
 
-// Handler Back telefon - inchide modalul activ in loc sa iasa din aplicatie
+// Handler Back telefon - da click pe butonul de inchidere aferent ferestrei deschise
+// IMPORTANT: ordinea conteaza - modalele cu z-index mai mare se verifica primele
 window.addEventListener('popstate', function(){
-    const modals = [
-        {id:'setariModal',     close: ()=>closeSetari()},
-        {id:'istoricOverlay',  close: ()=>closeIstoric()},
-        {id:'alertModal',      close: ()=>document.getElementById('alertModal').classList.add('hidden')},
-        {id:'winnerModal',     close: ()=>document.getElementById('winnerModal').classList.add('hidden')},
-        {id:'campionatModal',  close: ()=>document.getElementById('campionatModal').classList.add('hidden')},
-        {id:'tieModal',        close: ()=>document.getElementById('tieModal').classList.add('hidden')},
-        {id:'tiebreakerOverlay', close: ()=>document.getElementById('tiebreakerOverlay').classList.add('hidden')},
-        {id:'confirmModal',    close: ()=>document.getElementById('confirmModal').classList.add('hidden')},
-        {id:'confirmResetModal', close: ()=>document.getElementById('confirmResetModal').classList.add('hidden')},
-        {id:'jocCompletAlertModal', close: ()=>document.getElementById('jocCompletAlertModal').classList.add('hidden')},
-        {id:'prelungireCompletaAlertModal', close: ()=>document.getElementById('prelungireCompletaAlertModal').classList.add('hidden')},
-    ];
-    for(const m of modals){
-        const el = document.getElementById(m.id);
-        if(el && !el.classList.contains('hidden')){
-            m.close();
-            history.pushState({}, ''); // re-adauga entry ca sa nu iasa din app
-            return;
-        }
+
+    // Alert generic (z-index:40000) - poate aparea peste orice
+    const alert = document.getElementById('alertModal');
+    if(alert && !alert.classList.contains('hidden')){
+        const btn = alert.querySelector('button[onclick="closeAlert()"]');
+        if(btn) btn.click();
+        return;
     }
+
+    // Confirm reset istoric (z-index:36000) - apare peste istoric
+    const confirmReset = document.getElementById('confirmResetModal');
+    if(confirmReset && !confirmReset.classList.contains('hidden')){
+        const btn = confirmReset.querySelector('button.btn-cancel');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Setari (z-index:36000) - apare peste istoric
+    const setari = document.getElementById('setariModal');
+    if(setari && !setari.classList.contains('hidden')){
+        const btn = setari.querySelector('button[onclick="closeSetari()"]');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Confirm "Joc nou" (z-index:30000)
+    const confirm = document.getElementById('confirmModal');
+    if(confirm && !confirm.classList.contains('hidden')){
+        const btn = confirm.querySelector('button.btn-cancel');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Joc complet alert (z-index:30000)
+    const jocComplet = document.getElementById('jocCompletAlertModal');
+    if(jocComplet && !jocComplet.classList.contains('hidden')){
+        const btn = jocComplet.querySelector('button');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Prelungire completa alert (z-index:30000)
+    const prelungire = document.getElementById('prelungireCompletaAlertModal');
+    if(prelungire && !prelungire.classList.contains('hidden')){
+        const btn = prelungire.querySelector('button');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Campionat modal (z-index:35000)
+    const campionat = document.getElementById('campionatModal');
+    if(campionat && !campionat.classList.contains('hidden')){
+        const btn = campionat.querySelector('#campionatBtnSalveaza:not([style*="none"]), #campionatBtnContinua:not([style*="none"])');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Winner modal (z-index:20000)
+    const winner = document.getElementById('winnerModal');
+    if(winner && !winner.classList.contains('hidden')){
+        const btn = winner.querySelector('button[onclick="okWinner()"]');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Tie modal (z-index:20000)
+    const tie = document.getElementById('tieModal');
+    if(tie && !tie.classList.contains('hidden')){
+        const btn = tie.querySelector('button[onclick="startTiebreaker()"]');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Istoric (z-index:25000)
+    const istoric = document.getElementById('istoricOverlay');
+    if(istoric && !istoric.classList.contains('hidden')){
+        const btn = istoric.querySelector('.ist-close');
+        if(btn) btn.click();
+        return;
+    }
+
+    // Tiebreaker overlay (z-index:10000) - fara buton de iesire
+    const tb = document.getElementById('tiebreakerOverlay');
+    if(tb && !tb.classList.contains('hidden')){
+        history.pushState({}, '');
+        return;
+    }
+
+    // Niciun modal deschis - re-adauga entry ca sa nu iasa din app
+    history.pushState({}, '');
 });
 </script>
 </body>
