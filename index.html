@@ -1001,7 +1001,7 @@ function validateAllPlayerNames(){
         const inp = document.getElementById("name"+i);
         const val = inp.value.trim();
         if((i === 3 && val === "") || val === "") {
-            inp.style.borderColor = "";
+            inp.style.border = "2px solid #000";
             inp.style.color = "#000";
             inp.style.fontWeight = "";
             inp.style.background = "#000";
@@ -1010,13 +1010,13 @@ function validateAllPlayerNames(){
         }
         const exists = _nameExistsInIstoric(val);
         if(!exists){
-            inp.style.borderColor = "#000";
+            inp.style.border = "2px solid #000";
             inp.style.color = "#fff";
             inp.style.fontWeight = "bold";
             inp.style.background = "#000";
             inp.title = "Nume nou – nu există în istoric";
         } else {
-            inp.style.borderColor = "#2ECC40";
+            inp.style.border = "2px solid #2ECC40";
             inp.style.color = "#000";
             inp.style.fontWeight = "bold";
             inp.style.background = "#fff";
