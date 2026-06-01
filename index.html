@@ -540,18 +540,29 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
             document.body && (document.body.style.overflow='');
         },1000);
 
-    },2800);
+    },1800);
 
 })();
 </script>
 <!-- CONFIRM MODAL -->
 <div id="confirmModal" class="hidden">
     <div class="confirm-box">
-        <h2>Joc nou</h2>
-        <p>Ștergi jocul curent?</p>
+        <h2>Reset</h2>
+        <p>Resetezi jocul curent?</p>
         <div class="confirm-btns">
             <button class="btn-cancel" onclick="document.getElementById('confirmModal').classList.add('hidden')">Anulează</button>
-            <button onclick="document.getElementById('confirmModal').classList.add('hidden');resetGame()">Da, șterge</button>
+            <button onclick="document.getElementById('confirmModal').classList.add('hidden');resetGame()">Da, resetează</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARTIDA FINALIZATA DAR NEFINALIZATA -->
+<div id="partidaFinalizataNefinalizataModal" class="hidden" style="position:fixed;inset:0;z-index:38000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;">
+    <div class="confirm-box" style="max-width:320px;">
+        <h2 style="color:#FFD700;">⚠️ Atenție!</h2>
+        <p style="line-height:1.6;">Partida este finalizată și nu ai dat finalizare!<br><br>Dacă totuși nu vrei să resetezi partida fără să o înregistrezi, debifează un joc, apoi apasă <strong>Reset</strong>!</p>
+        <div class="confirm-btns">
+            <button onclick="document.getElementById('partidaFinalizataNefinalizataModal').classList.add('hidden')">OK</button>
         </div>
     </div>
 </div>
@@ -560,7 +571,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <div id="jocCompletAlertModal" class="hidden">
     <div class="confirm-box">
         <h2>🏁 Joc complet!</h2>
-        <p>Pentru a înregistra jocul, apasă butonul <strong>Finalizează joc</strong>, din bara de sus.</p>
+        <p>Pentru a înregistra partida, apasă butonul <strong>Finalizează</strong>, din bara de sus.</p>
         <div class="confirm-btns">
             <button onclick="document.getElementById('jocCompletAlertModal').classList.add('hidden')">OK</button>
         </div>
@@ -571,7 +582,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 <div id="prelungireCompletaAlertModal" class="hidden">
     <div class="confirm-box">
         <h2>🏁 Prelungire completă!</h2>
-        <p>Pentru a înregistra jocul, apasă butonul <strong>Finalizează joc</strong>, din bara de sus.</p>
+        <p>Pentru a înregistra partida, apasă butonul <strong>Finalizează</strong>, din bara de sus.</p>
         <div class="confirm-btns">
             <button onclick="document.getElementById('prelungireCompletaAlertModal').classList.add('hidden')">OK</button>
         </div>
@@ -667,9 +678,9 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         <h2 style="margin:0;">Rentz Score</h2>
     </div>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
-        <button onclick="finalizeazaJoc()" style="background:#00aa55;color:#fff;">Finalizează joc</button>
-        <span id="jocIncompletMsg" style="color:#ff4040;font-size:11px;display:none;white-space:nowrap;">Joc incomplet!</span>
-        <button onclick="newGame()">Joc nou</button>
+        <button onclick="finalizeazaJoc()" style="background:#00aa55;color:#fff;">Finalizează</button>
+        <span id="jocIncompletMsg" style="color:#ff4040;font-size:11px;display:none;white-space:nowrap;">Partidă incompletă!</span>
+        <button onclick="newGame()">Reset</button>
     </div>
 </div>
 
@@ -732,7 +743,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
             <thead><tr><th style="text-align:left">Jucător</th><th>🥇 Campionate</th></tr></thead>
             <tbody id="campionateBody"></tbody>
         </table>
-        <div class="ist-section-title">Jocuri jucate</div>
+        <div class="ist-section-title">Partide jucate</div>
         <div id="joculiList"></div>
     </div>
 </div>
@@ -841,8 +852,8 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
         <h2>⚔️ Departajare</h2>
         <span class="tb-round-badge" id="tbRoundBadge">Runda 1</span>
         <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
-            <button onclick="finalizeazaJocTb()" style="background:#00aa55;color:#fff;font-size:13px;padding:5px 12px;border-radius:6px;">Finalizează joc</button>
-            <span id="tbJocIncompletMsg" style="color:#ff4040;font-size:12px;display:none;">Joc incomplet!</span>
+            <button onclick="finalizeazaJocTb()" style="background:#00aa55;color:#fff;font-size:13px;padding:5px 12px;border-radius:6px;">Finalizează</button>
+            <span id="tbJocIncompletMsg" style="color:#ff4040;font-size:12px;display:none;">Partidă incompletă!</span>
         </div>
     </div>
     <div class="tb-scores" id="tbScores"></div>
@@ -1335,7 +1346,7 @@ function exportJocTxtContent(scores, tip="finalizat"){
 
 function exportJocTxt(scores, tip="finalizat"){
     const now = new Date();
-    const fname = `joc_${tip}_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,"0")}_${String(now.getDate()).padStart(2,"0")}_${String(now.getHours()).padStart(2,"0")}-${String(now.getMinutes()).padStart(2,"0")}.txt`;
+    const fname = `partida_${tip}_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,"0")}_${String(now.getDate()).padStart(2,"0")}_${String(now.getHours()).padStart(2,"0")}-${String(now.getMinutes()).padStart(2,"0")}.txt`;
     const blob = new Blob([exportJocTxtContent(scores, tip)], {type:"text/plain"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1374,7 +1385,7 @@ function showWinner(scores, names, numPlayers){
     // Un singur fisier combinat - evita problema Android cu multiple downloads
     const now2 = new Date();
     const fn2 = [now2.getFullYear(),String(now2.getMonth()+1).padStart(2,"0"),String(now2.getDate()).padStart(2,"0"),String(now2.getHours()).padStart(2,"0"),String(now2.getMinutes()).padStart(2,"0"),String(now2.getSeconds()).padStart(2,"0")].join("_");
-    const fname = `joc_istoric_${fn2}.txt`;
+    const fname = `partida_istoric_${fn2}.txt`;
     const combined = exportJocTxtContent(scores, "finalizat") + "\n\n" + "=".repeat(40) + "\n\n" + exportIstoricContent();
     const blob = new Blob([combined], {type:"text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -1739,7 +1750,7 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     // Combina intr-un singur fisier
     const now = new Date();
     const fn = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0"),String(now.getHours()).padStart(2,"0"),String(now.getMinutes()).padStart(2,"0"),String(now.getSeconds()).padStart(2,"0")].join("_");
-    const fname = `joc_istoric_campionat_${fn}.txt`;
+    const fname = `partida_istoric_campionat_${fn}.txt`;
     const combined = jocContent + "\n\n" + "=".repeat(40) + "\n\n" + campContent;
     const blob = new Blob([combined], {type:"text/plain;charset=utf-8"});
     const url = URL.createObjectURL(blob);
@@ -1818,7 +1829,7 @@ function exportCampionatContent(numeWinner, ist){
     }
     lines.push("");
     lines.push("=================================");
-    lines.push("  Jocuri jucate in acest campionat");
+    lines.push("  Partide jucate in acest campionat");
     lines.push("=================================");
     lines.push("");
     (ist.jocuri||[]).forEach(joc=>{
@@ -1864,7 +1875,7 @@ function exportIstoric_silent(){
     }
     lines.push("");
     lines.push("=================================");
-    lines.push("  Jocuri jucate");
+    lines.push("  Partide jucate");
     lines.push("=================================");
     lines.push("");
     ist.jocuri.forEach(joc=>{
@@ -2007,7 +2018,7 @@ function exportIstoricContent(){
     }
     lines.push("");
     lines.push("=================================");
-    lines.push("  Jocuri jucate");
+    lines.push("  Partide jucate");
     lines.push("=================================");
     lines.push("");
     if(!ist.jocuri||ist.jocuri.length===0){
@@ -2103,7 +2114,7 @@ function parseTxtIstoric(text){
 
             if(line.includes("Clasament victorii") || line.includes("Clasament general"))  { mode="victorii";   continue; }
             if(line.includes("Campionate castigate")) { mode="campionate"; continue; }
-            if(line.includes("Jocuri jucate"))        { mode="jocuri";    continue; }
+            if(line.includes("Jocuri jucate")||line.includes("Partide jucate")) { mode="jocuri";    continue; }
             if(line.startsWith("===") || line.startsWith("---") || line.startsWith("Jucator")) continue;
 
             if(mode==="victorii" && line.trim() && !line.startsWith("=")){
@@ -2553,7 +2564,37 @@ function resetGame(){
     updateWatermarkSize();
 }
 
+function _isPartidaFinalizata(){
+    const p4 = document.getElementById("name3").value.trim() !== "";
+    const numPlayers = p4 ? 4 : 3;
+    const targetTotal = p4 ? -72 : -87;
+    // Verifica totalul
+    let grand = 0;
+    for(let i=0;i<numPlayers;i++) grand += parseInt(document.getElementById("top"+i).textContent)||0;
+    if(grand !== targetTotal) return false;
+    // Verifica bifele
+    const rows = document.querySelectorAll('#gameRows tr');
+    for(let gi=0;gi<6;gi++){
+        for(let p=0;p<numPlayers;p++){
+            let hasCheck=false;
+            for(let ri=gi*4;ri<gi*4+4;ri++){
+                if(!rows[ri])continue;
+                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
+                if(cb&&cb.checked){hasCheck=true;break;}
+            }
+            if(!hasCheck) return false;
+        }
+    }
+    return true;
+}
+
 function newGame(){
+    // Verifica daca partida e finalizata (total corect + toate bifele) dar nu s-a finalizat
+    if(_isPartidaFinalizata()){
+        document.getElementById("partidaFinalizataNefinalizataModal").classList.remove("hidden");
+        history.pushState({modal:"partidaFinalizataNefinalizata"}, "");
+        return;
+    }
     document.getElementById("confirmModal").classList.remove("hidden");
     history.pushState({modal:"confirmModal"}, "");
 }
@@ -2684,6 +2725,13 @@ validateAllPlayerNames();
 // Handler Back telefon - da click pe butonul de inchidere aferent ferestrei deschise
 // IMPORTANT: ordinea conteaza - modalele cu z-index mai mare se verifica primele
 window.addEventListener('popstate', function(){
+
+    // Partida finalizata nefinalizata (z-index:38000)
+    const pfn = document.getElementById('partidaFinalizataNefinalizataModal');
+    if(pfn && !pfn.classList.contains('hidden')){
+        pfn.querySelector('button').click();
+        return;
+    }
 
     // Alert generic (z-index:40000) - poate aparea peste orice
     const alert = document.getElementById('alertModal');
