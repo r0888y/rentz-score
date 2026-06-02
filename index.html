@@ -98,20 +98,24 @@ body{scrollbar-width:none;}
 body::-webkit-scrollbar{display:none;}
 table{border-collapse:collapse;width:100%;background:#111;table-layout:fixed;}
 th,td{border:1px solid #1f1f1f;text-align:center;padding:2px;font-size:15px;}
-td:has(input[type="checkbox"]){padding-right:0;padding-left:20px;}
 td:has(input[type="number"]){padding-left:0;padding-right:10px;}
+.p4-chk,.p4-inp,[data-p="3"]{display:none;}
+/* checkbox unic per joc per jucator */
+input[type="checkbox"]{width:18px;height:18px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid #FFC300;border-radius:3px;background:#1c1c20;cursor:pointer;outline:none;}
+input[type="checkbox"]:checked{background:#2a9d8f;border-color:#2a9d8f;box-shadow:0 0 5px rgba(42,157,143,0.6);}
+input[type="checkbox"]:checked::after{content:"\2713";display:block;color:#fff;font-size:12px;font-weight:bold;text-align:center;line-height:16px;}
 /* section rows = thin colored separator strip */
-.section td{height:2px;padding:0;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);font-size:0;color:transparent;}
-.section td.mini-head{font-size:0;color:transparent;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);}
+.section td{height:2px;padding:0;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);font-size:0;color:transparent;position:relative;z-index:3;}
+.section td.mini-head{font-size:0;color:transparent;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);position:relative;z-index:3;}
+.section td.toggle-cell{width:0;max-width:0;min-width:0;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);overflow:hidden;z-index:3;}
 .mini-head{font-size:0;color:transparent;}
 input[type="number"]{width:5.3ch;min-width:1px;font-size:18px;background:#000;color:#000;text-align:center;border:2px solid #000;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);outline:none;-webkit-appearance:none;appearance:none;font-weight:bold;}
 input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
+/* checkbox-urile din tiebreaker raman neschimbate */
 input[type="checkbox"]{width:16px;height:16px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid #FFC300;border-radius:3px;background:#1c1c20;cursor:pointer;outline:none;}
 input[type="checkbox"]:checked{background:#00ff95;border-color:#00ff95;box-shadow:0 0 5px rgba(0,255,149,0.6);}
 input[type="checkbox"]:checked::after{content:"✓";display:block;color:#000;font-size:11px;font-weight:bold;text-align:center;line-height:14px;}
-input[type="checkbox"][data-conflict="1"]{background:#ff4040 !important;border-color:#ff4040 !important;box-shadow:0 0 5px rgba(255,64,64,0.6) !important;}
-input[type="checkbox"][data-conflict="1"]::after{content:"✕" !important;color:#fff !important;font-size:11px;font-weight:bold;display:block;text-align:center;line-height:14px;}
 .total{background:#1b1b1b;color:#00ff95;font-weight:bold;}
 .row-total{text-align:right;padding-right:4px;width:40px;font-size:18px;font-weight:bold;}
 #col0,#col1,#col2,#col3,#grandTotal{font-size:18px;font-weight:bold;}
@@ -938,15 +942,21 @@ games.forEach(g=>{
         <td class="mini-head" data-p="3" colspan="2"></td>
         <td></td>
     </tr>`;
+    const gIdx = games.indexOf(g);
+    const prefix=g.name.toUpperCase()==="TOTALE"?"Totale":g.name.toUpperCase()==="RENTZ"?"Rentz":g.name;
     for(let i=0;i<4;i++){
-        const prefix=g.name.toUpperCase()==="TOTALE"?"Totale":g.name.toUpperCase()==="RENTZ"?"Rentz":g.name;
+        // Checkbox unic pe randul central (i===1), celelalte randuri au td gol
+        const chk0 = i===1 ? `<input type="checkbox" data-game="${gIdx}" data-player="0">` : ``;
+        const chk1 = i===1 ? `<input type="checkbox" data-game="${gIdx}" data-player="1">` : ``;
+        const chk2 = i===1 ? `<input type="checkbox" data-game="${gIdx}" data-player="2">` : ``;
+        const chk3 = i===1 ? `<input type="checkbox" data-game="${gIdx}" data-player="3">` : ``;
         tbody.innerHTML+=`
         <tr class="${g.negative?'neg':''}">
             <td ${i===0?`data-wm="${prefix}"`:""} >${prefix}${i+1}</td>
-            <td><input type="checkbox"></td><td><input type="number" data-player="0"></td>
-            <td><input type="checkbox"></td><td><input type="number" data-player="1"></td>
-            <td><input type="checkbox"></td><td><input type="number" data-player="2"></td>
-            <td><input type="checkbox"></td><td><input type="number" data-player="3"></td>
+            <td>${chk0}</td><td><input type="number" data-player="0"></td>
+            <td>${chk1}</td><td><input type="number" data-player="1"></td>
+            <td>${chk2}</td><td><input type="number" data-player="2"></td>
+            <td class="p4-chk">${chk3}</td><td class="p4-inp"><input type="number" data-player="3"></td>
             <td class="row-total"></td>
         </tr>`;
     }
@@ -1031,13 +1041,17 @@ function togglePlayer4(){
     allRows.forEach(row=>{
         if(row.classList.contains("section")){
             const m=row.querySelector('.mini-head[data-p="3"]');
-            if(m)m.style.display=p4?"table-cell":"none";return;
+            if(m)m.style.display=p4?"table-cell":"none";
+            return;
         }
         const inputs=row.querySelectorAll('input[type="number"]');
         if(!inputs.length)return;
         const c=row.children;
-        if(c[7])c[7].style.display=p4?"table-cell":"none";
-        if(c[8])c[8].style.display=p4?"table-cell":"none";
+        // Ascunde checkbox P4 si input P4
+        const chkP4=row.querySelector('td.p4-chk');
+        if(chkP4) chkP4.style.display=p4?"table-cell":"none";
+        const inp3=row.querySelector('td.p4-inp');
+        if(inp3) inp3.style.display=p4?"table-cell":"none";
         const title=c[0]?.textContent||"";
         if(title.endsWith("4"))row.style.display=p4?"table-row":"none";
     });
@@ -1071,6 +1085,7 @@ function save(){
     const data={names:[],inputs:[],checks:[],highlights:[],tabId:TAB_ID,gameFinished:tieChecked};
     for(let i=0;i<4;i++)data.names.push(document.getElementById("name"+i).value);
     document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>data.inputs.push(i.value));
+    // Salveaza starea toggle-urilor (un boolean per jucator per joc = 24 valori max)
     document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(c=>data.checks.push(c.checked));
     document.querySelectorAll(".player-games span").forEach(el=>data.highlights.push(el.classList.contains("active")));
     _ignoringStorageEvent=true;
@@ -1102,19 +1117,14 @@ function saveDebounced(){
 function calc(){
     let cols=[0,0,0,0],grand=0;
     const p4=document.getElementById("name3").value.trim()!=="";
-    let groupChecks=[];
-    for(let g=0;g<rows.length;g+=4){
-        let group=[0,0,0,0];
-        for(let r=g;r<g+4;r++){
-            const c=rows[r]?.querySelectorAll('input[type="checkbox"]')||[];
-            c.forEach((ch,i)=>{if(ch.checked)group[i]++;});
-        }
-        groupChecks.push(group);
-    }
     rows.forEach((row,rowIndex)=>{
         const inputs=row.querySelectorAll('input[type="number"]');
-        const checks=row.querySelectorAll('input[type="checkbox"]');
-        let checkedCount=0;checks.forEach(c=>{if(c.checked)checkedCount++;});
+        const gIdx=Math.floor(rowIndex/4);
+        const rowInGroup=rowIndex%4; // 0,1,2,3
+        // Numara bifele bifate pentru acest joc
+        const checkedCount=document.querySelectorAll(`#gameRows input[type="checkbox"][data-game="${gIdx}"]:checked`).length;
+        // Randul e "activ" daca indexul lui in grup e mai mic decat nr de bife
+        const rowActive=rowInGroup<checkedCount;
         let sum=0,hasValue=false;
         inputs.forEach((inp,i)=>{
             validateInput(inp);
@@ -1123,8 +1133,10 @@ function calc(){
             hasValue=true;sum+=v;cols[i]+=v;
         });
         const totalCell=row.querySelector(".row-total");
-        if(checkedCount>0&&!hasValue){totalCell.textContent="0";totalCell.style.color="#ff4040";}
-        else if(hasValue){
+        if(!hasValue){
+            totalCell.textContent=rowActive?"0":"";
+            totalCell.style.color="#ff4040";
+        } else {
             totalCell.textContent=sum;grand+=sum;
             const title=row.children[0].textContent;let expected=null;
             if(title.startsWith("J"))expected=10;
@@ -1133,17 +1145,8 @@ function calc(){
             else if(title.startsWith("♦"))expected=p4?-8:-6;
             else if(title.startsWith("T"))expected=p4?-33:-31;
             else if(title.startsWith("R"))expected=p4?30:15;
-            totalCell.style.color=(sum!==expected||checkedCount===0)?"#ff4040":"#00ff95";
-        } else {totalCell.textContent="";}
-        checks.forEach((c,i)=>{
-            const group=Math.floor(rowIndex/4);
-            const colInvalid=groupChecks[group]?.[i]>1;
-            const conflict=c.checked&&(checkedCount!==1||colInvalid);
-            c.style.background=conflict?"#ff4040":c.checked?"#00ff95":"#1c1c20";
-            c.style.borderColor=conflict?"#ff4040":c.checked?"#00ff95":"#FFC300";
-            // X sau bifa
-            c.dataset.conflict=conflict?"1":"0";
-        });
+            totalCell.style.color=(sum!==expected||!rowActive)?"#ff4040":"#00ff95";
+        }
     });
     for(let i=0;i<4;i++){
         document.getElementById("top"+i).textContent=cols[i];
@@ -1215,16 +1218,11 @@ function finalizeazaJoc(){
     // Verifica totalul
     if(grand !== targetTotal){ showJocIncomplet(); return; }
 
-    // Verifica bifele - toate grupele trebuie sa aiba cel putin o bifa per jucator
+    // Verifica checkbox-urile unice
     for(let gi=0;gi<6;gi++){
         for(let p=0;p<numPlayers;p++){
-            let hasCheck=false;
-            for(let ri=gi*4;ri<gi*4+4;ri++){
-                if(!rows[ri])continue;
-                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
-                if(cb&&cb.checked){hasCheck=true;break;}
-            }
-            if(!hasCheck){ showJocIncomplet(); return; }
+            const cb=document.querySelector(`#gameRows input[type="checkbox"][data-game="${gi}"][data-player="${p}"]`);
+            if(!cb||!cb.checked){ showJocIncomplet(); return; }
         }
     }
 
@@ -1259,13 +1257,8 @@ function checkGameEnd(cols,grand){
     if(grand!==targetTotal){ window._gameComplete=false; return; }
     for(let gi=0;gi<6;gi++){
         for(let p=0;p<numPlayers;p++){
-            let hasCheck=false;
-            for(let ri=gi*4;ri<gi*4+4;ri++){
-                if(!rows[ri])continue;
-                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
-                if(cb&&cb.checked){hasCheck=true;break;}
-            }
-            if(!hasCheck){ window._gameComplete=false; return; }
+            const cb=document.querySelector(`#gameRows input[type="checkbox"][data-game="${gi}"][data-player="${p}"]`);
+            if(!cb||!cb.checked){ window._gameComplete=false; return; }
         }
     }
     if(!window._gameComplete){
@@ -1302,16 +1295,17 @@ function exportJocTxtContent(scores, tip="finalizat"){
     lines.push(sep);
     games.forEach(g=>{
         lines.push(pL(g.name, NW));
+        const gIdx = games.indexOf(g);
         for(let i=0;i<4;i++){
             if(numPlayers===3 && i===3) continue;
-            const rowIndex = games.indexOf(g)*4 + i;
+            const rowIndex = gIdx*4 + i;
             const row = rows[rowIndex];
             if(!row) continue;
-            const checks = row.querySelectorAll('input[type="checkbox"]');
             const inputs = row.querySelectorAll('input[type="number"]');
             let line = pL(`  ${g.name}${i+1}`, NW);
             for(let p=0;p<numPlayers;p++){
-                const checked = checks[p]?.checked ? "☑" : "☐";
+                const cb = document.querySelector(`#gameRows input[type="checkbox"][data-game="${gIdx}"][data-player="${p}"]`);
+                const checked = cb?.checked ? "☑" : "☐";
                 const raw = inputs[p]?.value;
                 const num = raw!=="" && raw!==undefined ? parseInt(raw)||0 : 0;
                 line += checked + pR(num, NW2) + " ".repeat(GAP);
@@ -2483,29 +2477,24 @@ function closePad(){
 
 /* ===== MAIN EVENTS ===== */
 document.addEventListener("input",(e)=>{
-    if(e.target.matches('#gameRows input[type="number"],#gameRows input[type="checkbox"]')){calc();updateGameHighlights();}
+    if(e.target.matches('#gameRows input[type="number"],#gameRows input[type="checkbox"]')){calc();updateGameHighlights();scheduleSave();}
     if(e.target.matches('#gameRows input[type="number"]'))validateInput(e.target);
     if(e.target.matches('.player-name')){updateNames();togglePlayer4();tieChecked=false;}
 });
 
 function updateGameHighlights(){
-    const map=["J","Q","K","D","T","R"];
+    const gameMap=["J","Q","K","D","T","R"];
     for(let p=0;p<4;p++){
-        map.forEach(game=>{
-            let active=false;
-            document.querySelectorAll("#gameRows tr:not(.section)").forEach(row=>{
-                const title=row.children[0]?.textContent||"";
-                const norm=title.replace("♦","D");
-                if(!norm.startsWith(game))return;
-                const cb=row.querySelectorAll('input[type="checkbox"]')[p];
-                if(cb?.checked)active=true;
-            });
+        gameMap.forEach((game,gi)=>{
+            const cb=document.querySelector(`#gameRows input[type="checkbox"][data-game="${gi}"][data-player="${p}"]`);
+            const active=cb?cb.checked:false;
             document.querySelectorAll(`#games${p} span`).forEach(span=>{
                 if(span.dataset.game===game)span.classList.toggle("active",active);
             });
         });
     }
 }
+
 
 function validateInput(inp){
     const row=inp.closest("tr");if(!row)return;
@@ -2579,17 +2568,11 @@ function _isPartidaFinalizata(){
     let grand = 0;
     for(let i=0;i<numPlayers;i++) grand += parseInt(document.getElementById("top"+i).textContent)||0;
     if(grand !== targetTotal) return false;
-    // Verifica bifele - doar randurile cu inputuri numerice
-    const rows = Array.from(document.querySelectorAll('#gameRows tr')).filter(r=>r.querySelector('input[type="number"]'));
+    // Verifica checkbox-urile unice
     for(let gi=0;gi<6;gi++){
         for(let p=0;p<numPlayers;p++){
-            let hasCheck=false;
-            for(let ri=gi*4;ri<gi*4+4;ri++){
-                if(!rows[ri])continue;
-                const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
-                if(cb&&cb.checked){hasCheck=true;break;}
-            }
-            if(!hasCheck) return false;
+            const cb=document.querySelector(`#gameRows input[type="checkbox"][data-game="${gi}"][data-player="${p}"]`);
+            if(!cb||!cb.checked) return false;
         }
     }
     return true;
