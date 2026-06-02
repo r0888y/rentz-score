@@ -115,7 +115,7 @@ input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;fo
 /* checkbox-urile din tiebreaker raman neschimbate */
 input[type="checkbox"]{width:16px;height:16px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid #FFC300;border-radius:3px;background:#1c1c20;cursor:pointer;outline:none;}
 input[type="checkbox"]:checked{background:#00ff95;border-color:#00ff95;box-shadow:0 0 5px rgba(0,255,149,0.6);}
-input[type="checkbox"]:checked::after{content:"✓";display:block;color:#000;font-size:11px;font-weight:bold;text-align:center;line-height:14px;}
+input[type="checkbox"]:checked::after{content:"✓";display:block;color:#000;font-size:11px;font-weight:bold;text-align:right;line-height:14px;}
 .total{background:#1b1b1b;color:#00ff95;font-weight:bold;}
 .row-total{text-align:right;padding-right:4px;width:40px;font-size:18px;font-weight:bold;}
 #col0,#col1,#col2,#col3,#grandTotal{font-size:18px;font-weight:bold;}
@@ -952,11 +952,20 @@ games.forEach(g=>{
         const chk3 = i===1 ? `<input type="checkbox" data-game="${gIdx}" data-player="3">` : ``;
         tbody.innerHTML+=`
         <tr class="${g.negative?'neg':''}">
-            <td ${i===0?`data-wm="${prefix}"`:""} >${prefix}${i+1}</td>
-            <td>${chk0}</td><td><input type="number" data-player="0"></td>
-            <td>${chk1}</td><td><input type="number" data-player="1"></td>
-            <td>${chk2}</td><td><input type="number" data-player="2"></td>
-            <td class="p4-chk">${chk3}</td><td class="p4-inp"><input type="number" data-player="3"></td>
+            <td ${i===0?`data-wm="${prefix}"`:""}>${prefix}${i+1}</td>
+
+            <td style="text-align:right;">${chk0}</td>
+            <td style="text-align:center;"><input type="number" data-player="0"></td>
+
+            <td style="text-align:right;">${chk1}</td>
+            <td style="text-align:center;"><input type="number" data-player="1"></td>
+
+            <td style="text-align:right;">${chk2}</td>
+            <td style="text-align:center;"><input type="number" data-player="2"></td>
+
+            <td class="p4-chk" style="text-align:right;">${chk3}</td>
+            <td class="p4-inp" style="text-align:center;"><input type="number" data-player="3"></td>
+
             <td class="row-total"></td>
         </tr>`;
     }
