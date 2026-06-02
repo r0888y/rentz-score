@@ -1348,27 +1348,67 @@ function exportJocTxtContent(scores, tip="finalizat"){
     lines.push(sep);
 
     // Prelungiri daca au existat
+    // Folosim istoricul rundelor acumulat in window._tbHistory (rundele finalizate)
+    // plus runda curenta din DOM (daca e activa si are date)
+    const allTbRounds = [];
+
+    // Adauga rundele deja finalizate din istoric
+    if(window._tbHistory && window._tbHistory.length > 0){
+        window._tbHistory.forEach(rd=>{
+            allTbRounds.push(rd);
+        });
+    }
+
+    // Verifica daca runda curenta din DOM are date (runda activa)
     const tbRowsEl = document.querySelectorAll('#tbRows tr');
-    const hasTb = Array.from(tbRowsEl).some(r=>
+    const currentTbRows = Array.from(tbRowsEl).filter(r=>r.querySelector('input[type="number"]'));
+    const hasTbCurrent = currentTbRows.some(r=>
         Array.from(r.querySelectorAll('input[type="number"]')).some(inp=>inp.value!=="")
     );
-    if(hasTb){
+    if(hasTbCurrent){
+        const ctx = window._tbContext;
+        const ctxNumPlayers = ctx ? ctx.numPlayers : numPlayers;
+        const ctxRound = ctx ? ctx.round : 1;
+        const ctxNames = ctx ? ctx.names : names;
+        // Adauga runda curenta doar daca nu e deja in istoric (evita duplicate)
+        const alreadySaved = allTbRounds.some(rd=>rd.round===ctxRound);
+        if(!alreadySaved){
+            allTbRounds.push({
+                round: ctxRound,
+                names: ctxNames,
+                numPlayers: ctxNumPlayers,
+                rows: currentTbRows.map(row=>{
+                    const inputs = row.querySelectorAll('input[type="number"]');
+                    const checks = row.querySelectorAll('input[type="checkbox"]');
+                    const label = row.querySelector('td:first-child')?.textContent||"";
+                    const vals = [];
+                    const chkd = [];
+                    for(let p=0;p<ctxNumPlayers;p++){
+                        vals.push(inputs[p]?.value||"");
+                        chkd.push(checks[p]?.checked||false);
+                    }
+                    return {label, vals, chkd};
+                })
+            });
+        }
+    }
+
+    if(allTbRounds.length > 0){
         lines.push("");
         lines.push("PRELUNGIRE (Departajare):");
-        lines.push(sep);
-        tbRowsEl.forEach(row=>{
-            const inputs = row.querySelectorAll('input[type="number"]');
-            const checks = row.querySelectorAll('input[type="checkbox"]');
-            if(!inputs.length) return;
-            const label = row.querySelector('td:first-child')?.textContent||"";
-            let line = pL(label, NW);
-            for(let p=0;p<numPlayers;p++){
-                const checked = checks[p]?.checked ? "☑" : "☐";
-                const raw = inputs[p]?.value;
-                const num = raw!=="" && raw!==undefined ? parseInt(raw)||0 : 0;
-                line += checked + pR(num, NW2) + " ".repeat(GAP);
-            }
-            lines.push(line);
+        allTbRounds.forEach(rd=>{
+            lines.push(sep);
+            lines.push(`--- Runda ${rd.round} ---`);
+            rd.rows.forEach(rowData=>{
+                let line = pL(rowData.label, NW);
+                for(let p=0;p<rd.numPlayers;p++){
+                    const checked = rowData.chkd[p] ? "☑" : "☐";
+                    const raw = rowData.vals[p];
+                    const num = raw!=="" && raw!==undefined ? parseInt(raw)||0 : 0;
+                    line += checked + pR(num, NW2) + " ".repeat(GAP);
+                }
+                lines.push(line);
+            });
         });
         lines.push(sep);
     }
@@ -2224,6 +2264,10 @@ let tbRows=[];
 
 function startTiebreaker(){
     document.getElementById("tieModal").classList.add("hidden");
+    // Initializeaza istoricul rundelor de tiebreaker la prima runda
+    if(!window._tbContext || window._tbContext.round===1){
+        window._tbHistory = [];
+    }
     buildTiebreaker();
     history.pushState({modal:'tiebreaker'}, '');
     document.getElementById("tiebreakerOverlay").classList.remove("hidden");
@@ -2406,6 +2450,27 @@ function finalizeazaJocTb(){
     const ties = findTies(newScores);
     tbEndTriggered = true;
 
+    // Salveaza datele rundei curente in istoric inainte de a trece la urmatoarea
+    if(!window._tbHistory) window._tbHistory = [];
+    const roundData = {
+        round: ctx.round,
+        names: ctx.names.slice(),
+        numPlayers: ctx.numPlayers,
+        rows: tbRows.map(row=>{
+            const inputs = row.querySelectorAll('input[type="number"]');
+            const checks = row.querySelectorAll('input[type="checkbox"]');
+            const label = row.querySelector('td:first-child')?.textContent||"";
+            const vals = [];
+            const chkd = [];
+            for(let p=0;p<ctx.numPlayers;p++){
+                vals.push(inputs[p]?.value||"");
+                chkd.push(checks[p]?.checked||false);
+            }
+            return {label, vals, chkd};
+        })
+    };
+    window._tbHistory.push(roundData);
+
     if(ties.length===0){
         setTimeout(()=>showWinner(newScores, ctx.names, numPlayers), 100);
     } else {
@@ -2583,6 +2648,7 @@ function resetGame(){
     document.getElementById("tieModal").classList.add("hidden");
     document.getElementById("winnerModal").classList.add("hidden");
     window._tbContext=null;
+    window._tbHistory=[];
     tbRows=[];
     togglePlayer4();
     updateNames();
