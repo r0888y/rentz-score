@@ -1091,9 +1091,9 @@ function scheduleSave(){
 
 function save(){
     if(_loadingFromStorage) return;
-    const data={names:[],inputs:[],checks:[],highlights:[],tabId:TAB_ID,gameFinished:tieChecked};
+    const data={names:[],inputs:[],autoFlags:[],checks:[],highlights:[],tabId:TAB_ID,gameFinished:tieChecked};
     for(let i=0;i<4;i++)data.names.push(document.getElementById("name"+i).value);
-    document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>data.inputs.push(i.value));
+    document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>{data.inputs.push(i.value);data.autoFlags.push(i.dataset.auto==="1"?1:0);});
     // Salveaza starea toggle-urilor (un boolean per jucator per joc = 24 valori max)
     document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(c=>data.checks.push(c.checked));
     document.querySelectorAll(".player-games span").forEach(el=>data.highlights.push(el.classList.contains("active")));
@@ -1110,6 +1110,7 @@ function load(){
     const inputs=document.querySelectorAll('#gameRows input[type="number"]');
     const checks=document.querySelectorAll('#gameRows input[type="checkbox"]');
     if(data.inputs)data.inputs.forEach((v,i)=>{if(inputs[i])inputs[i].value=v;});
+    if(data.autoFlags)data.autoFlags.forEach((f,i)=>{if(inputs[i]){if(f)inputs[i].dataset.auto="1";else delete inputs[i].dataset.auto;}});
     if(data.checks)data.checks.forEach((v,i)=>{if(checks[i])checks[i].checked=v;});
     if(data.highlights)document.querySelectorAll(".player-games span").forEach((el,i)=>{data.highlights[i]?el.classList.add("active"):el.classList.remove("active");});
     // Restaureaza flag-ul gameFinished ca sa nu re-triggereze modals la refresh
@@ -1154,7 +1155,28 @@ function calc(){
             else if(title.startsWith("♦"))expected=p4?-8:-6;
             else if(title.startsWith("T"))expected=p4?-33:-31;
             else if(title.startsWith("R"))expected=p4?30:15;
-            totalCell.style.color=(sum!==expected||!rowActive)?"#ff4040":"#00ff95";
+            const rowValid=(sum===expected&&rowActive);
+            totalCell.style.color=rowValid?"#00ff95":"#ff4040";
+            // Completeaza automat cu 0 campurile goale daca totalul e valid
+            if(rowValid){
+                const numP=p4?4:3;
+                inputs.forEach((inp,i)=>{
+                    if(i>=numP)return;
+                    if(inp.value===""||inp.value==="-"){
+                        inp.value="0";
+                        inp.dataset.auto="1";
+                        // 0 nu schimba cols, deci nu e nevoie de recalcul
+                    }
+                });
+            } else {
+                // Sterge valorile completate automat daca totalul nu mai e valid
+                inputs.forEach(inp=>{
+                    if(inp.dataset.auto==="1"){
+                        inp.value="";
+                        delete inp.dataset.auto;
+                    }
+                });
+            }
         }
     });
     for(let i=0;i<4;i++){
