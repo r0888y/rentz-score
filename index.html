@@ -87,22 +87,16 @@ button{background:#00ff95;border:0;padding:5px 8px;font-size:14px;border-radius:
 .player-name::placeholder{font-family:Georgia,serif;font-size:16px;color:#aaa;}
 .player-score{margin-top:1px;font-size:42px;color:#ffffff;font-weight:bold;line-height:1.1;}
 
-#stickyPlayers tr td{position:sticky;top:0;z-index:10;padding:4px 2px;font-size:14px;font-family:Georgia,serif;font-weight:700;color:#00FFFF;text-align:left;border:none;border-bottom:2px solid #00FFFF;background:#1c1c20;white-space:nowrap;overflow:visible;text-overflow:clip;}
-#stickyPlayers tr td:first-child{font-size:0;color:transparent;}
-
 .wrapper{height:calc(100vh - 140px);overflow:auto;position:relative;scrollbar-width:none;}
 .wrapper::-webkit-scrollbar{display:none;}
 html{scrollbar-width:none;}
 html::-webkit-scrollbar{display:none;}
-body{scrollbar-width:none;}
-body::-webkit-scrollbar{display:none;}
 table{border-collapse:collapse;width:100%;background:#111;table-layout:fixed;}
 th,td{border:1px solid #1f1f1f;text-align:center;padding:2px;font-size:15px;}
 td:has(input[type="checkbox"]){padding-right:0;padding-left:20px;}
 td:has(input[type="number"]){padding-left:0;padding-right:10px;}
 /* section rows = thin colored separator strip */
 .section td{height:2px;padding:0;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);font-size:0;color:transparent;}
-.section td.mini-head{font-size:0;color:transparent;border:none;background:linear-gradient(90deg,#003d5c,#006994,#00c3a5,#006994,#003d5c);}
 .mini-head{font-size:0;color:transparent;}
 input[type="number"]{width:5.3ch;min-width:1px;font-size:18px;background:#000;color:#000;text-align:center;border:2px solid #000;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);outline:none;-webkit-appearance:none;appearance:none;font-weight:bold;position:relative;z-index:2;}
 input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
@@ -826,16 +820,6 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
 <div class="wrapper">
     <table>
-        <thead id="stickyPlayers">
-            <tr id="stickyRow">
-                <td style="width:auto"></td>
-                <td id="sh0" colspan="2" style="text-align:left;padding-left:30px;">P1</td>
-                <td id="sh1" colspan="2" style="text-align:left;padding-left:30px;">P2</td>
-                <td id="sh2" colspan="2" style="text-align:left;padding-left:30px;">P3</td>
-                <td id="sh3" colspan="2" style="text-align:left;padding-left:30px;">P4</td>
-                <td style="width:50px"></td>
-            </tr>
-        </thead>
         <tbody id="gameRows"></tbody>
         <tr class="total">
             <td>T</td>
@@ -923,13 +907,9 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 
 <script>
 /* ==================== MULTI-TAB PROTECTION ==================== */
-// Each tab gets a unique ID so we can identify who wrote to storage
 const TAB_ID = Math.random().toString(36).slice(2);
-// Flag: ignore storage events triggered by our own writes
 let _ignoringStorageEvent = false;
-// Debounce timer for incoming storage events from other tabs
 let _storageDebounce = null;
-// Flag: we are currently loading from storage (suppress saves during load)
 let _loadingFromStorage = false;
 
 /* ==================== MAIN GAME ==================== */
@@ -937,6 +917,14 @@ let _loadingFromStorage = false;
 const STORAGE_KEY="rentz_save_v1";
 const TB_STORAGE_KEY="rentz_tb_save_v1";
 let activeInput=null, saveTimeout;
+let _gameComplete=false;
+let _finalizareProcesata=false;
+let _prelungireActiva=false;
+let _campionatWinner=null;
+let _campionatCriteriu="";
+let _tbComplete=false;
+let _tbIncompletTimer=null;
+let _incompletTimer=null;
 
 const games=[
     {name:"J♠",negative:false},
@@ -987,12 +975,6 @@ function updateNames(){
         document.querySelectorAll(`#gameRows input[type="number"][data-player="${i}"]`).forEach(el=>{
             el.placeholder=name;
         });
-        const sh=document.getElementById("sh"+i);
-        if(sh){
-            sh.dataset.name=name;
-            sh.dataset.namesize=inp.style.fontSize||"14";
-            sh.textContent=name;
-        }
     }
     scheduleSave();
     validateAllPlayerNames();
@@ -1074,18 +1056,13 @@ function togglePlayer4(){
         else p4Box.classList.add("p4-empty");
     }
     document.querySelectorAll("#games3 span").forEach(el=>{el.style.display=p4?"":"none";});
-    const sh3=document.getElementById("sh3");
-    if(sh3)sh3.style.display=p4?"":"none";
-    document.querySelectorAll("#stickyPlayers tr td").forEach(td=>{
-        td.style.fontSize=p4?"13px":"18px";
-    });
     updateWatermarkSize();
 }
 
 function scheduleSave(){
-    if(_loadingFromStorage) return; // don't save while loading
+    if(_loadingFromStorage) return;
     clearTimeout(saveTimeout);
-    saveTimeout=setTimeout(save, 800);
+    saveTimeout=setTimeout(save, 300);
 }
 
 function save(){
@@ -1161,14 +1138,8 @@ function load(){
     // Restaureaza flag-ul gameFinished ca sa nu re-triggereze modals la refresh
     if(data.gameFinished) tieChecked=true;
     _loadingFromStorage=false;
-    // Re-aplica validateInput pe fiecare input (pentru stilul rock)
+    // Re-aplica validateInput pe fiecare input (culori rosu/alb)
     document.querySelectorAll('#gameRows input[type="number"]').forEach(inp=>validateInput(inp));
-}
-
-function saveDebounced(){
-    if(_loadingFromStorage) return;
-    clearTimeout(saveTimeout);
-    saveTimeout=setTimeout(()=>save(),300);
 }
 
 function calc(){
@@ -1283,45 +1254,7 @@ function calc(){
     }
     document.getElementById("grandTotal").textContent=grand;
 
-    // Loc + diferenta sub scorul din cardul de sus
-    const numP = p4?4:3;
-    const activeCols = cols.slice(0,numP);
-    const sorted = [...activeCols].map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
-    const locuri = new Array(numP);
-    sorted.forEach((p,rank)=>{
-        // Daca are acelasi scor ca cel dinaintea lui, primeste acelasi loc
-        if(rank>0 && sorted[rank].s===sorted[rank-1].s){
-            locuri[p.i]=locuri[sorted[rank-1].i];
-        } else {
-            locuri[p.i]=rank+1;
-        }
-    });
-    const romani = ["I","II","III","IV"];
-    for(let i=0;i<numP;i++){
-        const loc=locuri[i];
-        let diffStr="";
-        if(loc>1){
-            const prevScore=sorted[loc-2].s;
-            const diff=activeCols[i]-prevScore;
-            diffStr=` (${diff})`;
-        }
-        let el=document.getElementById("loc"+i);
-        if(!el){
-            el=document.createElement("div");
-            el.id="loc"+i;
-            el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
-            const topEl=document.getElementById("top"+i);
-            topEl.parentNode.insertBefore(el, topEl);
-        }
-        el.textContent=romani[loc-1]+diffStr;
-    }
-
-    // Sticky header - revenire la dimensiunea originala a numelui
-    for(let i=0;i<numP;i++){
-        const sh = document.getElementById("sh"+i);
-        if(sh && sh.dataset.name) sh.textContent = sh.dataset.name;
-    }
-    saveDebounced();
+    scheduleSave();
     const colsSum=cols.slice(0,p4?4:3).reduce((a,b)=>a+b,0);
     checkGameEnd(cols,colsSum);
 }
@@ -1330,9 +1263,9 @@ function calc(){
 let tieChecked=false;
 
 function finalizeazaJoc(){
-    if(window._finalizareProcesata) return;
-    window._finalizareProcesata = true;
-    setTimeout(()=>{ window._finalizareProcesata = false; }, 3000);
+    if(_finalizareProcesata) return;
+    _finalizareProcesata = true;
+    setTimeout(()=>{ _finalizareProcesata = false; }, 3000);
     const p4 = document.getElementById("name3").value.trim() !== "";
     const numPlayers = p4 ? 4 : 3;
     const targetTotal = p4 ? -72 : -87;
@@ -1379,8 +1312,8 @@ function finalizeazaJoc(){
 function showJocIncomplet(){
     const msg = document.getElementById("jocIncompletMsg");
     msg.style.display = "inline";
-    clearTimeout(window._incompletTimer);
-    window._incompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
+    clearTimeout(_incompletTimer);
+    _incompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
 }
 
 function checkGameEnd(cols,grand){
@@ -1388,7 +1321,7 @@ function checkGameEnd(cols,grand){
     const p4=document.getElementById("name3").value.trim()!=="";
     const numPlayers=p4?4:3;
     const targetTotal=p4?-72:-87;
-    if(grand!==targetTotal){ window._gameComplete=false; return; }
+    if(grand!==targetTotal){ _gameComplete=false; return; }
     for(let gi=0;gi<6;gi++){
         for(let p=0;p<numPlayers;p++){
             let hasCheck=false;
@@ -1397,14 +1330,14 @@ function checkGameEnd(cols,grand){
                 const cb=rows[ri].querySelectorAll('input[type="checkbox"]')[p];
                 if(cb&&cb.checked){hasCheck=true;break;}
             }
-            if(!hasCheck){ window._gameComplete=false; return; }
+            if(!hasCheck){ _gameComplete=false; return; }
         }
     }
-    if(!window._gameComplete){
+    if(!_gameComplete){
         document.getElementById("jocCompletAlertModal").classList.remove("hidden");
         history.pushState({modal:"jocCompletAlert"}, "");
     }
-    window._gameComplete=true;
+    _gameComplete=true;
 }
 
 const BONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 24" width="36" height="14" style="vertical-align:middle;margin:0 2px;filter:drop-shadow(0 0 2px rgba(255,255,255,0.4))"><g fill="#ccc"><circle cx="7" cy="6" r="5"/><circle cx="7" cy="18" r="5"/><circle cx="57" cy="6" r="5"/><circle cx="57" cy="18" r="5"/><rect x="10" y="9" width="44" height="6" rx="3"/></g></svg>`;
@@ -1541,13 +1474,13 @@ function buildWinnerHTML(scores, names, numPlayers){
 }
 
 function showWinner(scores, names, numPlayers){
-    window._prelungireActiva = false;
+    _prelungireActiva = false;
 
     addJocToIstoric(scores, names, numPlayers);
 
     // Daca campionatul s-a terminat, exportul se face in showCampionatModal
     if(!document.getElementById("campionatModal").classList.contains("hidden")) return;
-    if(window._prelungireActiva) return;
+    if(_prelungireActiva) return;
 
     // Un singur fisier combinat - evita problema Android cu multiple downloads
     const now2 = new Date();
@@ -1583,7 +1516,7 @@ function showPrelungireModal(numeEgali){
     document.getElementById("campionatMustSave").style.display = "none";
     document.getElementById("campionatBtnSalveaza").style.display = "none";
     document.getElementById("campionatBtnContinua").style.display = "";
-    window._campionatWinner = null;
+    _campionatWinner = null;
     document.getElementById("campionatModal").classList.remove("hidden");
     history.pushState({modal:"campionatModal"}, "");
 }
@@ -1657,10 +1590,6 @@ function openSetari(){
         el.style.opacity = gol ? "1" : "0.4";
         el.style.cursor = gol ? "pointer" : "not-allowed";
     });
-    document.getElementById("savePct4Btn") && (document.getElementById("savePct4Btn").disabled = !gol);
-    document.getElementById("savePct3Btn") && (document.getElementById("savePct3Btn").disabled = !gol);
-    document.getElementById("savePct4Btn") && (document.getElementById("savePct4Btn").style.opacity = gol ? "1" : "0.4");
-    document.getElementById("savePct3Btn") && (document.getElementById("savePct3Btn").style.opacity = gol ? "1" : "0.4");
     const savePctBtn = document.getElementById("savePctBtn");
     if(savePctBtn){ savePctBtn.disabled = !gol; savePctBtn.style.opacity = gol ? "1" : "0.4"; }
 
@@ -1669,7 +1598,7 @@ function openSetari(){
         document.getElementById(id).style.display="none";
     });
 
-    updateSetariRezumat();
+    updateRezumatIstoric();
     history.pushState({modal:'setari'}, '');
     document.getElementById("setariModal").classList.remove("hidden");
 }
@@ -1700,10 +1629,6 @@ function updateRezumatIstoric(){
         </div>`;
 }
 
-function updateSetariRezumat(){
-    updateRezumatIstoric();
-}
-
 function saveSetariPrag(){
     const val = parseInt(document.getElementById("setariPragInput").value);
     const errEl = document.getElementById("setariPragEroare");
@@ -1722,7 +1647,7 @@ function saveSetariPrag(){
     }
     setPragCampionat(val);
     PUNCTAJ_CAMPIONAT = val;
-    updateSetariRezumat();
+    updateRezumatIstoric();
     showAlert(`Prag campionat salvat: ${val} puncte`, "✅");
 }
 
@@ -1749,47 +1674,12 @@ function saveSetariPct(){
     }
     if(!ok) return;
     setPct4(vals4); setPct3(vals3);
-    updateSetariRezumat();
+    updateRezumatIstoric();
     showAlert(`Punctaje salvate!\nJoc 4: ${vals4.join(", ")}\nJoc 3: ${vals3.join(", ")}`, "✅");
 }
 
-function saveSetariPct4(){
-    const errEl = document.getElementById("setariPct4Eroare");
-    errEl.style.display = "none";
-    const vals = [1,2,3,4].map(i=>parseInt(document.getElementById("pct4_"+i).value));
-    if(vals.some(v=>isNaN(v)||v<0)){
-        errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
-        errEl.style.display = "block"; return;
-    }
-    if(!(vals[0]>vals[1] && vals[1]>=vals[2] && vals[2]>=vals[3])){
-        errEl.textContent = "Trebuie: Loc 1 > Loc 2 ≥ Loc 3 ≥ Loc 4!";
-        errEl.style.display = "block"; return;
-    }
-    setPct4(vals);
-    updateSetariRezumat();
-    showAlert(`Punctaje joc de 4 salvate:\nLoc1=${vals[0]}, Loc2=${vals[1]}, Loc3=${vals[2]}, Loc4=${vals[3]}`, "✅");
-}
-
-function saveSetariPct3(){
-    const errEl = document.getElementById("setariPct3Eroare");
-    errEl.style.display = "none";
-    const vals = [1,2,3].map(i=>parseInt(document.getElementById("pct3_"+i).value));
-    if(vals.some(v=>isNaN(v)||v<0)){
-        errEl.textContent = "Toate valorile trebuie să fie numere întregi pozitive sau 0!";
-        errEl.style.display = "block"; return;
-    }
-    if(!(vals[0]>vals[1] && vals[1]>=vals[2])){
-        errEl.textContent = "Trebuie: Loc 1 > Loc 2 ≥ Loc 3!";
-        errEl.style.display = "block"; return;
-    }
-    setPct3(vals);
-    updateSetariRezumat();
-    showAlert(`Punctaje joc de 3 salvate:\nLoc1=${vals[0]}, Loc2=${vals[1]}, Loc3=${vals[2]}`, "✅");
-}
 // Variabila folosita in cod (se actualizeaza la fiecare citire prin getPragCampionat())
 let PUNCTAJ_CAMPIONAT = getPragCampionat();
-
-const SEED_VICTORII = {};
 
 function loadIstoric(){
     try {
@@ -1803,7 +1693,7 @@ function loadIstoric(){
         }
     } catch(e){}
     // Prima rulare: initializeaza cu seed
-    const initial = { victorii: JSON.parse(JSON.stringify(SEED_VICTORII)), jocuri: [], campionate: {} };
+    const initial = { victorii: {}, jocuri: [], campionate: {} };
     saveIstoric(initial);
     return initial;
 }
@@ -1879,11 +1769,11 @@ function addJocToIstoric(scores, names, numPlayers){
         // Dupa departajare tot egali → intra in prelungire
         ist._prelungire = true;
         saveIstoric(ist);
-        window._prelungireActiva = true;
+        _prelungireActiva = true;
         showPrelungireModal(candidati.map(([n])=>n));
     } else {
         // In prelungire si tot egali → continua
-        window._prelungireActiva = true;
+        _prelungireActiva = true;
         showPrelungireModal(candidati.map(([n])=>n));
     }
     // Egalitate nerezolvata → campionatul continua, niciun modal
@@ -1891,7 +1781,7 @@ function addJocToIstoric(scores, names, numPlayers){
 
 function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     document.getElementById("winnerModal").classList.add("hidden");
-    window._campionatWinner = numeWinner;
+    _campionatWinner = numeWinner;
 
     const players = scores.slice(0, numPlayers).map((s,i)=>({s,i}));
     players.sort((a,b)=>b.s-a.s);
@@ -1908,7 +1798,7 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     } else if(criteriu){
         extraMsg = `<br><span style="font-size:12px;color:#ff9900;">⚡ Departajat după ${criteriu}</span>`;
     }
-    window._campionatCriteriu = ist._prelungire ? "prelungire" : (criteriu || "");
+    _campionatCriteriu = ist._prelungire ? "prelungire" : (criteriu || "");
 
     // Genereaza continutul campionat
     const campContent = exportCampionatContent(numeWinner, ist);
@@ -1933,7 +1823,7 @@ function showCampionatModal(numeWinner, scores, names, numPlayers, criteriu){
     ist.jocuri = [];
     ist._prelungire = false;
     saveIstoric(ist);
-    window._campionatWinner = null;
+    _campionatWinner = null;
     resetGame();
 
     // Afiseaza mesaj
@@ -1966,7 +1856,7 @@ function exportCampionatContent(numeWinner, ist){
     const pct4cf = getPct4(); const pct3cf = getPct3();
     lines.push(`  Punctaje joc 4: Loc1=${pct4cf[0]}, Loc2=${pct4cf[1]}, Loc3=${pct4cf[2]}, Loc4=${pct4cf[3]}`);
     lines.push(`  Punctaje joc 3: Loc1=${pct3cf[0]}, Loc2=${pct3cf[1]}, Loc3=${pct3cf[2]}`);
-    const criteriu = window._campionatCriteriu || "";
+    const criteriu = _campionatCriteriu || "";
     if(criteriu === "prelungire") lines.push("  ⚡ Câștigat după prelungire");
     else if(criteriu) lines.push(`  ⚡ Departajat după: ${criteriu}`);
     lines.push("=================================");
@@ -2456,39 +2346,7 @@ function tbCalc(){
     }
     document.getElementById("tbGrandTotal").textContent=grand;
 
-    // Loc + diferenta in timp real pentru TB
-    const totals = Array.from({length:numPlayers},(_,i)=>(scores[i]||0)+cols[i]);
-    const sortedTb = [...totals].map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s);
-    const locuriTb = new Array(numPlayers);
-    sortedTb.forEach((p,rank)=>{
-        if(rank>0 && sortedTb[rank].s===sortedTb[rank-1].s){
-            locuriTb[p.i]=locuriTb[sortedTb[rank-1].i];
-        } else {
-            locuriTb[p.i]=rank+1;
-        }
-    });
-    const romaniTb=["I","II","III","IV"];
-    for(let i=0;i<numPlayers;i++){
-        const loc=locuriTb[i];
-        let diffStr="";
-        if(loc>1){
-            const prevScore=sortedTb[loc-2].s;
-            const diff=totals[i]-prevScore;
-            diffStr=` (${diff})`;
-        }
-        let el=document.getElementById("tbloc"+i);
-        if(!el){
-            el=document.createElement("div");
-            el.id="tbloc"+i;
-            el.style.cssText="font-size:18px;font-weight:bold;color:#FFD700;line-height:1;margin-top:2px;";
-            const valEl=document.getElementById("tbVal"+i);
-            if(valEl) valEl.parentNode.insertBefore(el, valEl);
-        }
-        el.textContent=romaniTb[loc-1]+diffStr;
-    }
-
     checkTbEnd(cols,grand,numPlayers);
-    // Save TB state after each calculation so browser exit doesn't lose progress
     saveTb();
 }
 
@@ -2503,7 +2361,7 @@ let tbEndTriggered=false;
 
 function checkTbEnd(tbCols,grand,numPlayers){
     // Nu mai declanseaza automat - doar seteaza flag
-    window._tbComplete = false;
+    _tbComplete = false;
     const totalExpected=numPlayers===4?120:45;
     if(grand!==totalExpected)return;
     for(let p=0;p<numPlayers;p++){
@@ -2514,11 +2372,11 @@ function checkTbEnd(tbCols,grand,numPlayers){
         });
         if(!hasCheck)return;
     }
-    if(!window._tbComplete){
+    if(!_tbComplete){
         document.getElementById("prelungireCompletaAlertModal").classList.remove("hidden");
     history.pushState({modal:"prelungireAlert"}, "");
     }
-    window._tbComplete = true;
+    _tbComplete = true;
 }
 
 function finalizeazaJocTb(){
@@ -2586,8 +2444,8 @@ function finalizeazaJocTb(){
 function showTbJocIncomplet(){
     const msg = document.getElementById("tbJocIncompletMsg");
     msg.style.display = "inline";
-    clearTimeout(window._tbIncompletTimer);
-    window._tbIncompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
+    clearTimeout(_tbIncompletTimer);
+    _tbIncompletTimer = setTimeout(()=>{ msg.style.display="none"; }, 3000);
 }
 
 function okWinner(){
@@ -2725,8 +2583,8 @@ function updateGameHighlights(){
 }
 
 function validateInput(inp){
-    // valid-rock e gestionat exclusiv de calc() pe baza validarii complete a randului
-    // aceasta functie doar seteaza culoarea rosie daca valoarea individuala e invalida
+    // valid-rock e gestionat exclusiv de calc()
+    // Aceasta functie seteaza doar culoarea rosie daca valoarea individuala e invalida
     if(inp.classList.contains("valid-rock")){ inp.style.color=""; return; }
     const row=inp.closest("tr");if(!row)return;
     const title=row.children[0]?.textContent||"";
@@ -2772,15 +2630,8 @@ function resetGame(){
     document.querySelectorAll(".player-games span").forEach(el=>el.classList.remove("active"));
     tieChecked=false;
     tbEndTriggered=false;
-    window._gameComplete=false;
-    window._finalizareProcesata=false;
-    // Reseteaza afisarea locurilor
-    for(let i=0;i<4;i++){
-        const el=document.getElementById("loc"+i);
-        if(el) el.textContent="";
-        const tbloc=document.getElementById("tbloc"+i);
-        if(tbloc) tbloc.textContent="";
-    }
+    _gameComplete=false;
+    _finalizareProcesata=false;
     document.getElementById("tiebreakerOverlay").classList.add("hidden");
     document.getElementById("tieModal").classList.add("hidden");
     document.getElementById("winnerModal").classList.add("hidden");
@@ -2950,7 +2801,6 @@ calc();
 _loadingFromStorage=false;
 updateGameHighlights();
 updateWatermarkSize();
-validateAllPlayerNames();
 // Restaureaza starea TB daca eram in mijlocul prelungirilor
 // IMPORTANT: trebuie apelat DUPA load()/updateNames() ca sa aiba numele corecte
 if(!loadTb()){
