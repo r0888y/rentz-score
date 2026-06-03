@@ -2637,10 +2637,11 @@ function openOurNumpad(inp){
     document.querySelectorAll('#gameRows input[type="number"]').forEach(i=>i.classList.remove("active-input"));
     activeInput=inp;
     inp.classList.add("active-input");
-    // Daca inputul are valoare auto, o golim ca userul sa poata introduce alta valoare
+    // Daca inputul are valoare auto (0 completat de calc), facem valoarea vizibila
+    // Fundalul normal e negru si color e negru = invizibil; o facem alba sa vada userul ce e acolo
+    // La prima tasta apasata din numpad, valoarea va fi inlocuita (overwrite in pressKey/backspace)
     if(inp.dataset.auto==="1"){
-        inp.value="";
-        delete inp.dataset.auto;
+        inp.style.color="#fff";
     }
     inp.readOnly=true;
     document.getElementById("numPad").classList.remove("hidden");
@@ -2653,6 +2654,12 @@ document.addEventListener("click",(e)=>{
 
 function pressKey(key){
     if(!activeInput)return;
+    // Daca inputul are valoare auto, prima tasta sterge valoarea existenta (overwrite)
+    if(activeInput.dataset.auto==="1"){
+        activeInput.value="";
+        delete activeInput.dataset.auto;
+        activeInput.style.color=""; // lasa calc/validateInput sa seteze culoarea
+    }
     const row=activeInput.closest("tr");
     const isNeg=row&&row.classList.contains("neg");
     if(isNeg){
@@ -2664,13 +2671,30 @@ function pressKey(key){
 
 function backspace(){
     if(!activeInput)return;
+    // Daca inputul are valoare auto, backspace sterge tot (nu caracter cu caracter)
+    if(activeInput.dataset.auto==="1"){
+        activeInput.value="";
+        delete activeInput.dataset.auto;
+        activeInput.style.color=""; // lasa calc/validateInput sa seteze culoarea
+        activeInput.dispatchEvent(new Event("input",{bubbles:true}));
+        return;
+    }
     let v=activeInput.value;v=v.slice(0,-1);if(v==="-")v="";
     activeInput.value=v;activeInput.dispatchEvent(new Event("input",{bubbles:true}));
 }
 
 function closePad(){
     document.getElementById("numPad").classList.add("hidden");
-    if(activeInput){activeInput.classList.remove("active-input");activeInput.readOnly=false;activeInput.blur();}
+    if(activeInput){
+        activeInput.classList.remove("active-input");
+        activeInput.readOnly=false;
+        // Daca inputul era auto si nu a fost modificat, restabilim culoarea corecta
+        // calc() va seta valid-rock daca randul e inca valid, deci culoarea se va regla
+        if(activeInput.dataset.auto==="1"){
+            activeInput.style.color="";
+        }
+        activeInput.blur();
+    }
     activeInput=null;
 }
 
@@ -2706,8 +2730,9 @@ function validateInput(inp){
     if(inp.classList.contains("valid-rock")){ inp.style.color=""; return; }
     const row=inp.closest("tr");if(!row)return;
     const title=row.children[0]?.textContent||"";
-    const val=Number(inp.value);
     if(inp.value===""||inp.value==="-"){ inp.style.color="#fff"; return; }
+    const val=Number(inp.value);
+    if(isNaN(val)){ inp.style.color="#ff4040"; return; }
     const p4=document.getElementById("name3").value.trim()!=="";
     let valid=false;
     if(title.startsWith("J"))valid=[0,10].includes(val);
@@ -2734,7 +2759,7 @@ function resetGame(){
     setTimeout(()=>{ _ignoringStorageEvent=false; }, 150);
     clearTimeout(saveTimeout);
 
-    document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{ x.readOnly=false; x.value=""; });
+    document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{ x.readOnly=false; x.value=""; x.classList.remove("valid-rock"); delete x.dataset.auto; x.style.color=""; });
     document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(x=>x.checked=false);
 
     ["P1","P2","P3",""].forEach((v,i)=>{ document.getElementById("name"+i).value=v; });
@@ -2853,7 +2878,7 @@ window.addEventListener("storage",(e)=>{
             document.getElementById("tbNumPad").classList.add("hidden");
 
             _loadingFromStorage=true;
-            document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{x.readOnly=false;x.value="";});
+            document.querySelectorAll('#gameRows input[type="number"]').forEach(x=>{x.readOnly=false;x.value="";x.classList.remove("valid-rock");delete x.dataset.auto;x.style.color="";});
             document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(x=>x.checked=false);
             ["P1","P2","P3",""].forEach((v,i)=>{ document.getElementById("name"+i).value=v; });
             _loadingFromStorage=false;
