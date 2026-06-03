@@ -1142,6 +1142,8 @@ function loadTb(){
         if(tbData.curChecks) tbData.curChecks.forEach((v,i)=>{ if(checks[i]) checks[i].checked=v; });
         document.getElementById('tiebreakerOverlay').classList.remove('hidden');
         tbCalc();
+        // Adauga history entry ca butonul Back sa nu iasa din app
+        history.pushState({modal:'tiebreaker'}, '');
         return true;
     } catch(e){ return false; }
 }
@@ -1454,12 +1456,12 @@ function exportJocTxtContent(scores, tip="finalizat"){
 
     // Prelungiri daca au existat
     const allRounds = window._tbAllRounds || [];
-    // Adauga si runda curenta daca TB e inca activ si are date
+    // Adauga runda curenta din DOM doar daca TB e inca activ (nu a fost deja finalizata si adaugata in allRounds)
     const tbRowsEl = document.querySelectorAll('#tbRows tr');
-    const hasCurTb = Array.from(tbRowsEl).some(r=>
+    const hasCurTb = !tbEndTriggered && Array.from(tbRowsEl).some(r=>
         Array.from(r.querySelectorAll('input[type="number"]')).some(inp=>inp.value!=="")
     );
-    // Construim lista completa de runde: cele finalizate + eventual runda curenta
+    // Construim lista completa de runde: cele finalizate + eventual runda curenta (doar daca nu e deja in allRounds)
     const roundsToExport = [...allRounds];
     if(hasCurTb){
         const curRows = [];
@@ -1478,7 +1480,11 @@ function exportJocTxtContent(scores, tip="finalizat"){
             curRows.push(rowData);
         });
         const curRound = window._tbContext?.round || (roundsToExport.length + 1);
-        roundsToExport.push({ round: curRound, rows: curRows });
+        // Verifica sa nu fie deja adaugata (evita duplicat)
+        const alreadyAdded = roundsToExport.some(r => r.round === curRound);
+        if(!alreadyAdded){
+            roundsToExport.push({ round: curRound, rows: curRows });
+        }
     }
 
     if(roundsToExport.length > 0){
@@ -2921,9 +2927,13 @@ updateGameHighlights();
 updateWatermarkSize();
 validateAllPlayerNames();
 // Restaureaza starea TB daca eram in mijlocul prelungirilor
+// IMPORTANT: trebuie apelat DUPA load()/updateNames() ca sa aiba numele corecte
 if(!loadTb()){
     window._tbAllRounds = window._tbAllRounds || [];
 }
+// Dupa loadTb, asigura ca tbEndTriggered e false (runda e in desfasurare, nu finalizata)
+// tbEndTriggered se seteaza doar la finalizeazaJocTb(), nu la restore
+tbEndTriggered = false;
 
 // Handler Back telefon - da click pe butonul de inchidere aferent ferestrei deschise
 // IMPORTANT: ordinea conteaza - modalele cu z-index mai mare se verifica primele
