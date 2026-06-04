@@ -953,7 +953,7 @@ const games=[
     {name:"K♥",negative:true},
     {name:"♦",negative:true},
     {name:"Totale",negative:true},
-    {name:"Rentz",negative:false}
+    {name:"Rentz",negative:false, unique:true} // unique:true = valorile jucatorilor trebuie sa fie toate diferite intre ele (nu se admit duplicate pe acelasi rand)
 ];
 
 const tbody=document.getElementById("gameRows");
@@ -972,7 +972,7 @@ games.forEach(g=>{
     for(let i=0;i<4;i++){
         const prefix=g.name.toUpperCase()==="TOTALE"?"Totale":g.name.toUpperCase()==="RENTZ"?"Rentz":g.name;
         tbody.innerHTML+=`
-        <tr class="${g.negative?'neg':''}" data-game="${g.name}">
+        <tr class="${g.negative?'neg':''}" data-game="${g.name}"${g.unique?' data-unique="1"':''}>
             <td ${i===0?`data-wm="${prefix}"`:""} >${prefix}${i+1}</td>
             <td><input type="checkbox"></td><td><input type="number" data-player="0"></td>
             <td><input type="checkbox"></td><td><input type="number" data-player="1"></td>
@@ -1216,7 +1216,7 @@ function calc(){
         // - suma e cea corecta
         // Validare unicitate valori pentru Rentz (valorile trebuie sa fie toate diferite)
         let allUnique=true;
-        if(row.dataset.game==="Rentz" && allFilledValid && hasAnyValue){
+        if(row.dataset.unique==="1" && allFilledValid && hasAnyValue){
             const vals=[];
             inputs.forEach((inp,i)=>{
                 if(i>=numPRow)return;
