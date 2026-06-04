@@ -183,7 +183,6 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     display:flex;flex-direction:column;justify-content:center;
 }
 .tb-score-box.hidden{display:none!important;}
-.tb-name{font-family:Georgia,serif;font-weight:700;font-size:16px;background:#f5f5f5;color:#000;border-radius:5px;line-height:28px;height:28px;}
 .tb-val{font-size:24px;font-weight:bold;color:#fff;margin-top:2px;}
 .tb-val.tied{color:#FFC107;}
 
@@ -869,7 +868,7 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     <div class="tb-wrapper">
         <table>
             <tbody id="tbRows"></tbody>
-            <tr class="total">
+            <tr class="total" id="tbTotalRow">
                 <td>T</td>
                 <td></td><td id="tbCol0">0</td>
                 <td></td><td id="tbCol1">0</td>
@@ -2272,7 +2271,7 @@ function buildTiebreaker(){
         const box=document.createElement("div");
         box.className="tb-score-box"+(i>=numPlayers?" hidden":"");
         box.id="tbBox"+i;
-        box.innerHTML=`<div class="tb-name">${names[i]||"P"+(i+1)}</div><div class="tb-val" id="tbVal${i}">${scores[i]||0}</div>`;
+        box.innerHTML=`<div class="tb-val" id="tbVal${i}">${scores[i]||0}</div>`;
         scoresDiv.appendChild(box);
     }
 
@@ -2282,8 +2281,8 @@ function buildTiebreaker(){
 
     tbBody.innerHTML+=`
     <tr class="section">
-        <td>Rentz</td>
-        ${[0,1,2,3].map(i=>i<numPlayers?`<td class="mini-head" colspan="2">${names[i]||"P"+(i+1)}</td>`:"").join("")}
+        <td></td>
+        ${[0,1,2,3].map(i=>i<numPlayers?`<td class="mini-head" colspan="2"></td>`:"").join("")}
         <td></td>
     </tr>`;
 
@@ -2298,6 +2297,11 @@ function buildTiebreaker(){
     }
 
     tbRows=Array.from(document.querySelectorAll("#tbRows tr")).filter(r=>r.querySelector('input[type="number"]'));
+
+    // Ascunde coloana J4 (checkbox + input) din randul total daca nu e joc de 4
+    const tbCol3Pair = document.querySelectorAll("#tbTotalRow td:nth-child(8), #tbTotalRow td:nth-child(9)");
+    tbCol3Pair.forEach(td => td.style.display = numPlayers < 4 ? "none" : "");
+
     tbCalc();
     // Save TB state whenever we build a new round
     saveTb();
