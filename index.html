@@ -101,6 +101,7 @@ td:has(input[type="number"]){padding-left:0;padding-right:10px;}
 input[type="number"]{width:5.3ch;min-width:1px;font-size:18px;background:#000;color:#000;text-align:center;border:2px solid #000;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);outline:none;-webkit-appearance:none;appearance:none;font-weight:bold;position:relative;z-index:2;}
 input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
+tr.row-validated td{background:#3d3a2e !important;}
 input[type="number"].valid-rock{
     color:#2a1a00 !important;
     font-weight:bold;
@@ -143,7 +144,7 @@ input[type="checkbox"][data-conflict="1"]::after{content:"✕" !important;color:
 .active-input{outline:3px solid #00ff95 !important;box-shadow:0 0 0 3px rgba(0,255,149,0.25),0 2px 6px rgba(0,0,0,0.25),inset 1px 1px 2px rgba(255,255,255,0.7);}
 
 tbody tr:nth-child(5n+2) td:first-child{position:relative;}
-tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:absolute;left:10px;top:50%;transform:translateY(-25%);font-size:var(--wm-size,120px);font-weight:900;opacity:0.35;pointer-events:none;color:#ffffff;z-index:1;}
+tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:absolute;left:10px;top:100%;transform:translateY(-10%);font-size:var(--wm-size,120px);font-weight:900;opacity:0.35;pointer-events:none;color:#ffffff;z-index:1;}
 
 /* ===== TIEBREAKER OVERLAY ===== */
 #tiebreakerOverlay{
@@ -1227,6 +1228,8 @@ function calc(){
         }
         const rowValid = checkedCount>=1 && allFilledValid && hasAnyValue && expected!==null && sum===expected && allUnique;
 
+        if(rowValid) row.classList.add("row-validated");
+        else row.classList.remove("row-validated");
         if(rowValid){
             // Completeaza celulele goale cu 0 si marcheaza ca auto
             inputs.forEach((inp,i)=>{
@@ -1248,6 +1251,8 @@ function calc(){
         }
 
         // Acumulare finala si validare vizuala
+        if(rowValid) row.classList.add("row-validated");
+        else row.classList.remove("row-validated");
         let finalSum=0,finalHas=false;
         inputs.forEach((inp,i)=>{
             if(i>=numPRow) return;
@@ -2383,6 +2388,8 @@ function tbCalc(){
         }
         const rowValid=checkedCount>=1&&allFilledValid&&hasAnyValue&&sum===expected&&allUnique;
 
+        if(rowValid) row.classList.add("row-validated");
+        else row.classList.remove("row-validated");
         if(rowValid){
             // Completeaza celulele goale cu 0
             for(let i=0;i<numPlayers;i++){
