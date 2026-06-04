@@ -1385,6 +1385,8 @@ function exportJocTxtContent(scores, tip="finalizat"){
     lines.push("");
     lines.push(sep);
     lines.push(pL("",NW) + names.slice(0,numPlayers).map(n=>pL(n, colW)).join(""));
+    // Scorul fiecarui jucator pe randul 2 al header-ului
+    lines.push(pL("",NW) + names.slice(0,numPlayers).map((n,i)=>pL("("+scores[i]+")", colW)).join(""));
     lines.push(sep);
     games.forEach(g=>{
         lines.push(pL(g.name, NW));
