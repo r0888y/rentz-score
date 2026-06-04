@@ -1214,7 +1214,18 @@ function calc(){
         // - cel putin 1 bifa
         // - toate valorile introduse sunt individuale valide
         // - suma e cea corecta
-        const rowValid = checkedCount>=1 && allFilledValid && hasAnyValue && expected!==null && sum===expected;
+        // Validare unicitate valori pentru Rentz (valorile trebuie sa fie toate diferite)
+        let allUnique=true;
+        if(title.startsWith("R") && allFilledValid && hasAnyValue){
+            const vals=[];
+            inputs.forEach((inp,i)=>{
+                if(i>=numPRow)return;
+                if(inp.value===""||inp.value==="-")return;
+                vals.push(Number(inp.value));
+            });
+            allUnique = new Set(vals).size===vals.length;
+        }
+        const rowValid = checkedCount>=1 && allFilledValid && hasAnyValue && expected!==null && sum===expected && allUnique;
 
         if(rowValid){
             // Completeaza celulele goale cu 0 si marcheaza ca auto
@@ -2359,7 +2370,18 @@ function tbCalc(){
             hasAnyValue=true;sum+=n;
         }
 
-        const rowValid=checkedCount>=1&&allFilledValid&&hasAnyValue&&sum===expected;
+        // Validare unicitate valori pentru Rentz in prelungiri
+        let allUnique=true;
+        if(allFilledValid&&hasAnyValue){
+            const vals=[];
+            for(let i=0;i<numPlayers;i++){
+                const inp=inputs[i];if(!inp)continue;
+                if(inp.value===""||inp.value==="-")continue;
+                vals.push(Number(inp.value));
+            }
+            allUnique=new Set(vals).size===vals.length;
+        }
+        const rowValid=checkedCount>=1&&allFilledValid&&hasAnyValue&&sum===expected&&allUnique;
 
         if(rowValid){
             // Completeaza celulele goale cu 0
