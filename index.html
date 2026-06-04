@@ -102,25 +102,25 @@ input[type="number"]{width:5.3ch;min-width:1px;font-size:18px;background:#000;co
 input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
 input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
 input[type="number"].valid-rock{
-    color:#1a2a1a !important;
+    color:#2a1a00 !important;
     font-weight:bold;
     background:
-        radial-gradient(ellipse at 20% 30%, #7a9a7a 0%, #5a7a5a 40%),
-        radial-gradient(ellipse at 75% 15%, #6a8a6a 0%, #5a7a5a 35%),
-        radial-gradient(ellipse at 55% 70%, #748474 0%, #5a7a5a 45%),
-        radial-gradient(ellipse at 10% 80%, #607060 0%, #5a7a5a 38%),
-        radial-gradient(ellipse at 85% 60%, #6a8070 0%, #5a7a5a 42%),
-        linear-gradient(125deg,#7c9c7c 0%,#4e6e4e 25%,#6a8a6a 45%,#52725a 65%,#789078 80%,#546454 100%);
-    background-color:#5a7a5a;
-    border:2px solid #3a5a3a !important;
+        radial-gradient(ellipse at 20% 30%, #f5c842 0%, #c8960a 40%),
+        radial-gradient(ellipse at 75% 15%, #e8b830 0%, #c08010 35%),
+        radial-gradient(ellipse at 55% 70%, #d4a820 0%, #b87010 45%),
+        radial-gradient(ellipse at 10% 80%, #c89818 0%, #a86808 38%),
+        radial-gradient(ellipse at 85% 60%, #e0b228 0%, #c08820 42%),
+        linear-gradient(125deg,#f5c842 0%,#c8860a 25%,#e0a820 45%,#b87010 65%,#f0c038 80%,#a86808 100%);
+    background-color:#c8960a;
+    border:2px solid #8a6000 !important;
     box-shadow:
         0 3px 6px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 1px 0 rgba(255,240,180,0.35),
         inset 0 -2px 0 rgba(0,0,0,0.45),
-        inset 2px 0 0 rgba(255,255,255,0.12),
+        inset 2px 0 0 rgba(255,220,100,0.2),
         inset -2px 0 0 rgba(0,0,0,0.3),
         inset 0 0 8px rgba(0,0,0,0.2) !important;
-    text-shadow:0 1px 0 rgba(255,255,255,0.2),0 -1px 1px rgba(0,0,0,0.6) !important;
+    text-shadow:0 1px 0 rgba(255,240,150,0.4),0 -1px 1px rgba(0,0,0,0.7) !important;
 }
 input[type="checkbox"]{width:16px;height:16px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid #FFC300;border-radius:3px;background:#1c1c20;cursor:pointer;outline:none;}
 input[type="checkbox"]:checked{background:#00ff95;border-color:#00ff95;box-shadow:0 0 5px rgba(0,255,149,0.6);}
@@ -192,6 +192,27 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
 .tb-wrapper .section td{height:auto;padding:2px;background:#1f1f1f;font-size:20px;color:#FFC107;font-weight:bold;border:1px solid #1f1f1f;}
 .tb-wrapper .mini-head{color:#00FFFF;font-size:17px;font-weight:bold;}
 .tb-wrapper input[type="number"]::placeholder{color:rgba(255,255,255,0.55);font-size:17px;font-weight:bold;font-style:normal;overflow:hidden;}
+.tb-wrapper input[type="number"].valid-rock{
+    color:#2a1a00 !important;
+    font-weight:bold;
+    background:
+        radial-gradient(ellipse at 20% 30%, #f5c842 0%, #c8960a 40%),
+        radial-gradient(ellipse at 75% 15%, #e8b830 0%, #c08010 35%),
+        radial-gradient(ellipse at 55% 70%, #d4a820 0%, #b87010 45%),
+        radial-gradient(ellipse at 10% 80%, #c89818 0%, #a86808 38%),
+        radial-gradient(ellipse at 85% 60%, #e0b228 0%, #c08820 42%),
+        linear-gradient(125deg,#f5c842 0%,#c8860a 25%,#e0a820 45%,#b87010 65%,#f0c038 80%,#a86808 100%);
+    background-color:#c8960a;
+    border:2px solid #8a6000 !important;
+    box-shadow:
+        0 3px 6px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,240,180,0.35),
+        inset 0 -2px 0 rgba(0,0,0,0.45),
+        inset 2px 0 0 rgba(255,220,100,0.2),
+        inset -2px 0 0 rgba(0,0,0,0.3),
+        inset 0 0 8px rgba(0,0,0,0.2) !important;
+    text-shadow:0 1px 0 rgba(255,240,150,0.4),0 -1px 1px rgba(0,0,0,0.7) !important;
+}
 
 #winnerModal{
     position:fixed;inset:0;z-index:20000;
@@ -2322,19 +2343,52 @@ function tbCalc(){
         const checks=row.querySelectorAll('input[type="checkbox"]');
         let checkedCount=0;
         for(let i=0;i<numPlayers;i++){if(checks[i]&&checks[i].checked)checkedCount++;}
-        let sum=0,hasValue=false;
+
+        // Verifica validitatea individuala a fiecarui input si suma
+        let sum=0,hasAnyValue=false,allFilledValid=true;
         for(let i=0;i<numPlayers;i++){
             const inp=inputs[i];if(!inp)continue;
-            tbValidateInput(inp,p4);
+            const v=inp.value;
+            if(v===""||v==="-")continue;
+            const n=Number(v);
+            if(isNaN(n)){allFilledValid=false;continue;}
+            const valid=p4?[0,5,10,15].includes(n):[0,5,10].includes(n);
+            if(!valid)allFilledValid=false;
+            hasAnyValue=true;sum+=n;
+        }
+
+        const rowValid=checkedCount>=1&&allFilledValid&&hasAnyValue&&sum===expected;
+
+        if(rowValid){
+            // Completeaza celulele goale cu 0
+            for(let i=0;i<numPlayers;i++){
+                const inp=inputs[i];if(!inp)continue;
+                if(inp.value===""||inp.value==="-"){inp.value="0";inp.dataset.auto="1";}
+            }
+        } else {
+            // Sterge 0-urile auto
+            for(let i=0;i<numPlayers;i++){
+                const inp=inputs[i];if(!inp)continue;
+                if(inp.dataset.auto==="1"){inp.value="";delete inp.dataset.auto;}
+            }
+        }
+
+        // Acumulare finala + stilizare valid-rock
+        let finalSum=0,finalHas=false;
+        for(let i=0;i<numPlayers;i++){
+            const inp=inputs[i];if(!inp)continue;
+            if(rowValid){inp.classList.add("valid-rock");inp.style.color="";}
+            else{inp.classList.remove("valid-rock");tbValidateInput(inp,p4);}
             if(inp.value===""||inp.value==="-")continue;
             let v=Number(inp.value);if(isNaN(v))continue;
-            hasValue=true;sum+=v;cols[i]+=v;
+            finalHas=true;finalSum+=v;cols[i]+=v;
         }
+
         const totalCell=row.querySelector(".row-total");
-        if(checkedCount>0&&!hasValue){totalCell.textContent="0";totalCell.style.color="#ff4040";}
-        else if(hasValue){
-            totalCell.textContent=sum;grand+=sum;
-            totalCell.style.color=(sum!==expected||checkedCount===0)?"#ff4040":"#00ff95";
+        if(checkedCount>0&&!finalHas){totalCell.textContent="0";totalCell.style.color="#ff4040";}
+        else if(finalHas){
+            totalCell.textContent=finalSum;grand+=finalSum;
+            totalCell.style.color=(finalSum!==expected||checkedCount===0)?"#ff4040":"#00ff95";
         } else {totalCell.textContent="";}
     });
 
@@ -2470,6 +2524,10 @@ function openTbNumpad(inp){
     tbActiveInput=inp;
     inp.classList.add("active-input");
     inp.readOnly=true;
+    // Daca inputul are valoare auto (0 completat de tbCalc), facem valoarea vizibila
+    if(inp.dataset.auto==="1"){
+        inp.style.color="#fff";
+    }
     document.getElementById("tbNumPad").classList.remove("hidden");
 }
 
@@ -2481,6 +2539,12 @@ function closeTbPad(){
 
 function tbPressKey(key){
     if(!tbActiveInput)return;
+    // Daca inputul are valoare auto SAU e 0 pe un rand valid-rock, prima tasta face overwrite
+    if(tbActiveInput.dataset.auto==="1" || (tbActiveInput.value==="0" && tbActiveInput.classList.contains("valid-rock"))){
+        tbActiveInput.value="";
+        delete tbActiveInput.dataset.auto;
+        tbActiveInput.style.color="";
+    }
     if(tbActiveInput.value==="")tbActiveInput.value=key;
     else tbActiveInput.value+=key;
     tbActiveInput.dispatchEvent(new Event("input",{bubbles:true}));
@@ -2488,6 +2552,14 @@ function tbPressKey(key){
 
 function tbBackspace(){
     if(!tbActiveInput)return;
+    // Daca inputul are valoare auto SAU e 0 pe un rand valid-rock, backspace sterge tot
+    if(tbActiveInput.dataset.auto==="1" || (tbActiveInput.value==="0" && tbActiveInput.classList.contains("valid-rock"))){
+        tbActiveInput.value="";
+        delete tbActiveInput.dataset.auto;
+        tbActiveInput.style.color="";
+        tbActiveInput.dispatchEvent(new Event("input",{bubbles:true}));
+        return;
+    }
     tbActiveInput.value=tbActiveInput.value.slice(0,-1);
     tbActiveInput.dispatchEvent(new Event("input",{bubbles:true}));
 }
@@ -2517,11 +2589,11 @@ document.addEventListener("click",(e)=>{
 
 function pressKey(key){
     if(!activeInput)return;
-    // Daca inputul are valoare auto, prima tasta sterge valoarea existenta (overwrite)
-    if(activeInput.dataset.auto==="1"){
+    // Daca inputul are valoare auto SAU e 0 pe un rand valid-rock, prima tasta face overwrite
+    if(activeInput.dataset.auto==="1" || (activeInput.value==="0" && activeInput.classList.contains("valid-rock"))){
         activeInput.value="";
         delete activeInput.dataset.auto;
-        activeInput.style.color=""; // lasa calc/validateInput sa seteze culoarea
+        activeInput.style.color="";
     }
     const row=activeInput.closest("tr");
     const isNeg=row&&row.classList.contains("neg");
@@ -2534,11 +2606,11 @@ function pressKey(key){
 
 function backspace(){
     if(!activeInput)return;
-    // Daca inputul are valoare auto, backspace sterge tot (nu caracter cu caracter)
-    if(activeInput.dataset.auto==="1"){
+    // Daca inputul are valoare auto SAU e 0 pe un rand valid-rock, backspace sterge tot
+    if(activeInput.dataset.auto==="1" || (activeInput.value==="0" && activeInput.classList.contains("valid-rock"))){
         activeInput.value="";
         delete activeInput.dataset.auto;
-        activeInput.style.color=""; // lasa calc/validateInput sa seteze culoarea
+        activeInput.style.color="";
         activeInput.dispatchEvent(new Event("input",{bubbles:true}));
         return;
     }
