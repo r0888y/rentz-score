@@ -726,6 +726,9 @@ tbody tr:nth-child(5n+2) td:first-child::before{content:attr(data-wm);position:a
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;">
         <button onclick="finalizeazaJoc()" style="background:#00aa55;color:#fff;">Finish</button>
         <span id="jocIncompletMsg" style="color:#ff4040;font-size:11px;display:none;white-space:nowrap;">Partidă incompletă!</span>
+        <label title="Importă fișier din partida online" style="background:#1a3a5c;color:#c9a84c;border:1px solid #555;border-radius:6px;padding:0 10px;height:32px;display:inline-flex;align-items:center;cursor:pointer;font-size:13px;white-space:nowrap;">
+          🔗 Online<input type="file" accept=".json" style="display:none" onchange="importDinOnline(event)">
+        </label>
         <button onclick="newGame()">Reset</button>
     </div>
 </div>
@@ -3052,6 +3055,98 @@ window.addEventListener('popstate', function(){
     // Niciun modal deschis - re-adauga entry ca sa nu iasa din app
     history.pushState({}, '');
 });
+</script>
+
+<script>
+// ─── IMPORT DIN FIȘIER RENTZ ONLINE ─────────────────────────────────────────
+const _ONLINE_CHOICES = ['jPica','qMinus','kInima','romb','totale','rentz'];
+// Ordinea grupurilor în gameRows din index.html:
+// 0=J♠, 1=Q, 2=K♥, 3=♦, 4=Totale, 5=Rentz  (câte 4 rânduri fiecare)
+
+function importDinOnline(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.version || !data.players || !data.playerChoices) {
+        alert('Fișier invalid — nu pare să fie un export Rentz Online.');
+        return;
+      }
+
+      const maxP = data.maxPlayers || 4;  // 3 sau 4
+      const players = data.players;
+      const playerChoices = data.playerChoices;
+
+      // 1. Setează numele jucătorilor
+      //    Dacă maxP=3 → name3 rămâne gol (activează automat modul 3 jucători în index.html)
+      for (let i = 0; i < 4; i++) {
+        const el = document.getElementById('name' + i);
+        if (!el) continue;
+        if (i < maxP && players[i]) {
+          el.value = players[i];
+        } else {
+          el.value = '';  // gol pentru jucătorul 4 la 3P, sau orice slot lipsă
+        }
+      }
+
+      // 2. Calculează câte runde din fiecare tip au fost finalizate
+      //    playerChoices[j] = ce mai are jucătorul j de jucat
+      //    runde_finalizate(tipX) = maxP - câți jucători mai au tipX în lista lor
+      const roundsDone = {};
+      _ONLINE_CHOICES.forEach(cid => {
+        const remaining = playerChoices.filter(c => c && c.includes(cid)).length;
+        roundsDone[cid] = maxP - remaining;
+      });
+
+      // 3. Golește toate inputurile și checkboxurile
+      document.querySelectorAll('#gameRows input[type="number"]').forEach(inp => {
+        inp.value = '';
+      });
+      document.querySelectorAll('#gameRows input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.removeAttribute('data-conflict');
+      });
+
+      // 4. Bifează checkboxurile rundelor finalizate
+      //    Structura: 6 grupuri × 4 rânduri = 24 rânduri în allRows
+      //    La 3 jucători: coloanele 0,1,2 → checkbox-urile 0,1,2 pe fiecare rând
+      //    La 4 jucători: coloanele 0,1,2,3
+      const allRows = Array.from(document.querySelectorAll('#gameRows tr'))
+        .filter(r => r.querySelector('input[type="number"]'));
+
+      _ONLINE_CHOICES.forEach((cid, groupIdx) => {
+        const done = roundsDone[cid];
+        for (let round = 0; round < done; round++) {
+          const row = allRows[groupIdx * 4 + round];
+          if (!row) continue;
+          const checks = row.querySelectorAll('input[type="checkbox"]');
+          for (let p = 0; p < maxP; p++) {
+            if (checks[p]) checks[p].checked = true;
+          }
+        }
+      });
+
+      // 5. Trigger recalcul și salvare
+      if (typeof calc === 'function') calc();
+      if (typeof scheduleSave === 'function') scheduleSave();
+
+      // Toast confirmare
+      const t = document.createElement('div');
+      t.textContent = `✅ Importat: ${maxP} jucători din partida online`;
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#00aa55;color:#fff;padding:10px 22px;border-radius:20px;font-size:14px;z-index:99999;font-family:Georgia,serif;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+
+    } catch (err) {
+      alert('Eroare la citirea fișierului: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
 </script>
 </body>
 </html>
